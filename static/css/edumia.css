@@ -501,6 +501,28 @@ h1, h2, h3, h4, h5, h6 { color: var(--edumia-navy-900); font-weight: 700; letter
   position: relative;
 }
 
+.balance-toggle-btn {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.32rem 0.7rem;
+  border-radius: var(--edumia-radius-pill, 999px);
+  transition: background-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.balance-toggle-btn:hover,
+.balance-toggle-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.24);
+}
+
 .action-btn {
   display: flex;
   align-items: center;

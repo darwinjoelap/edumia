@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -8,6 +10,7 @@ from django.utils import timezone
 from django.views.generic import CreateView, ListView, UpdateView
 
 from academico.models import Estudiante, Grado, Representante, Seccion
+from cambio.services import SinTasaError, convertir, formatear, obtener_tasa
 from core.mixins import RolRequeridoMixin, requiere_rol
 from core.models import Institucion, PeriodoEscolar
 
@@ -65,6 +68,23 @@ def inicio(request):
     puede_ver_finanzas = request.user.is_superuser or rol in ROLES_FINANZAS
     puede_configurar = request.user.is_superuser or rol in ROLES_CONFIGURACION
 
+    # Todavía no existen los modelos de Ingreso/Gasto (Fase 3 y 5): el
+    # balance en bolívares se deja en cero, listo para calcularse de verdad
+    # apenas esos módulos entren en producción. Aun así, si hay una tasa de
+    # cambio cargada, se puede mostrar el equivalente en USD (botón de
+    # cambio de moneda en el dashboard).
+    balance_ves = Decimal("0")
+    tasa_activa = None
+    tasa_es_exacta = False
+    balance_usd = None
+    if puede_ver_finanzas:
+        try:
+            tasa_activa, tasa_es_exacta = obtener_tasa(timezone.localdate())
+            _, monto_usd = convertir(balance_ves, "VES", tasa_activa.valor)
+            balance_usd = formatear(monto_usd)
+        except SinTasaError:
+            tasa_activa = None
+
     contexto = {
         "institucion": institucion,
         "periodo_activo": periodo_activo,
@@ -74,10 +94,10 @@ def inicio(request):
         "total_secciones": secciones.count(),
         "puede_ver_finanzas": puede_ver_finanzas,
         "puede_configurar": puede_configurar,
-        # Todavía no existen los modelos de Ingreso/Gasto (Fase 3 y 5):
-        # el balance se deja en cero, listo para calcularse de verdad
-        # apenas esos módulos entren en producción.
-        "balance": 0,
+        "balance": formatear(balance_ves),
+        "balance_usd": balance_usd,
+        "tasa_activa": tasa_activa,
+        "tasa_es_exacta": tasa_es_exacta,
     }
     return render(request, "core/dashboard.html", contexto)
 

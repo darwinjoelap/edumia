@@ -23,11 +23,25 @@
 <div class="row g-3 mb-4">
   <div class="col-lg-5">
     <div class="balance-card h-100">
-      <div class="balance-label">Balance disponible</div>
-      <div class="balance-amount">Bs. {{ balance|default:"0,00" }}</div>
+      <div class="d-flex justify-content-between align-items-start">
+        <div class="balance-label">Balance disponible</div>
+        {% if tasa_activa %}
+        <button type="button" id="balance-moneda-toggle" class="balance-toggle-btn" aria-pressed="false">
+          <i class="bi bi-arrow-left-right"></i> <span id="balance-moneda-toggle-texto">Ver en USD</span>
+        </button>
+        {% endif %}
+      </div>
+      <div class="balance-amount" id="balance-monto-ves">Bs. {{ balance }}</div>
+      {% if tasa_activa %}
+      <div class="balance-amount d-none" id="balance-monto-usd">$ {{ balance_usd }}</div>
+      {% endif %}
       <div class="balance-note">
         <i class="bi bi-info-circle"></i>
-        Se calculará solo cuando entren en marcha los módulos de ingresos y gastos.
+        {% if tasa_activa %}
+          Tasa {{ tasa_activa.get_fuente_display }} del {{ tasa_activa.fecha }}: {{ tasa_activa.valor }} Bs./USD{% if not tasa_es_exacta %} (última disponible){% endif %}.
+        {% else %}
+          Se calculará solo cuando entren en marcha los módulos de ingresos y gastos.
+        {% endif %}
       </div>
     </div>
   </div>
@@ -213,4 +227,26 @@
   </div>
   {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if tasa_activa %}
+<script>
+(function () {
+  const boton = document.getElementById("balance-moneda-toggle");
+  const texto = document.getElementById("balance-moneda-toggle-texto");
+  const montoVes = document.getElementById("balance-monto-ves");
+  const montoUsd = document.getElementById("balance-monto-usd");
+  if (!boton || !montoVes || !montoUsd) return;
+
+  boton.addEventListener("click", () => {
+    const mostrandoUsd = boton.getAttribute("aria-pressed") === "true";
+    montoVes.classList.toggle("d-none", !mostrandoUsd);
+    montoUsd.classList.toggle("d-none", mostrandoUsd);
+    boton.setAttribute("aria-pressed", String(!mostrandoUsd));
+    texto.textContent = mostrandoUsd ? "Ver en USD" : "Ver en Bs.";
+  });
+})();
+</script>
+{% endif %}
 {% endblock %}
