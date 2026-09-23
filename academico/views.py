@@ -22,7 +22,7 @@ from .forms import (
 )
 from .importacion import validar_archivo
 from .models import Estudiante, EstudianteRepresentante, Grado, Inscripcion, Representante, Seccion
-from .promocion import calcular_plan, ejecutar_promocion
+from .promocion import calcular_plan_manual, ejecutar_promocion_manual
 
 FILAS_POR_DEFECTO = 10
 FILAS_MAXIMO = 50
@@ -449,15 +449,36 @@ def promocion_masiva(request):
             messages.error(request, "Selecciona de nuevo el período destino.")
             return redirect("academico:promocion_masiva")
 
-        resultado = ejecutar_promocion(periodo_origen, periodo_destino, timezone.localdate())
+        # Cada estudiante trae su propio <select name="destino_<id>">
+        # (D-21: no hay emparejamiento automático por nombre de sección).
+        asignaciones = {}
+        prefijo = "destino_"
+        for clave, valor in request.POST.items():
+            if not clave.startswith(prefijo):
+                continue
+            try:
+                estudiante_id = int(clave[len(prefijo):])
+            except ValueError:
+                continue
+            asignaciones[estudiante_id] = int(valor) if valor else None
+
+        resultado = ejecutar_promocion_manual(
+            periodo_origen, periodo_destino, timezone.localdate(), asignaciones
+        )
         request.session.pop(_CLAVE_SESION_PROMOCION, None)
-        messages.success(
-            request,
+        mensaje = (
             f"Promoción de {periodo_origen} a {periodo_destino}: "
             f"{resultado['promovidos']} promovido(s), {resultado['egresados']} egresado(s), "
-            f"{resultado['ya_existian']} ya estaban promovidos, "
-            f"{resultado['sin_destino']} sin sección destino (créala y vuelve a correr la promoción).",
+            f"{resultado['ya_existian']} ya estaban promovidos."
         )
+        if resultado["sin_destino"]:
+            messages.warning(
+                request,
+                mensaje + f" {resultado['sin_destino']} quedaron sin sección elegida: "
+                "vuelve a correr la promoción para completarlos.",
+            )
+        else:
+            messages.success(request, mensaje)
         return redirect("academico:promocion_masiva")
 
     if request.method == "POST":
@@ -465,11 +486,11 @@ def promocion_masiva(request):
         if form.is_valid():
             periodo_destino = form.cleaned_data["periodo_destino"]
             request.session[_CLAVE_SESION_PROMOCION] = periodo_destino.pk
-            plan = calcular_plan(periodo_origen, periodo_destino)
-            return render(request, "academico/promocion_preview.html", {
+            grupos = calcular_plan_manual(periodo_origen, periodo_destino)
+            return render(request, "academico/promocion_asignar.html", {
                 "periodo_origen": periodo_origen,
                 "periodo_destino": periodo_destino,
-                "plan": plan,
+                "grupos": grupos,
             })
     else:
         form = PromocionForm(periodo_origen=periodo_origen)

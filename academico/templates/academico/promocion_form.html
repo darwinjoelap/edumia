@@ -8,10 +8,10 @@
 </p>
 
 <div class="alert alert-info" style="max-width: 640px;">
-  Antes de promover, asegúrate de tener creado el período destino y sus secciones en
-  <a href="/admin/">/admin/</a> (mismo nombre de sección — ej. "A" — un grado más adelante).
-  Si falta alguna sección destino, esos estudiantes van a quedar marcados como
-  "sin sección destino" en la vista previa y no se van a mover hasta que la crees.
+  Antes de promover, asegúrate de tener creado el período destino y las secciones del
+  grado siguiente en <a href="{% url 'core:seccion_lista' %}">Configuración → Secciones</a>.
+  En el siguiente paso eliges, estudiante por estudiante, a qué sección va cada uno
+  (no se asume que se queda en la sección del mismo nombre).
 </div>
 
 <div class="card card-edumia" style="max-width: 520px;">
@@ -29,7 +29,7 @@
           </div>
         {% endif %}
       </div>
-      <button type="submit" class="btn btn-edumia-primary">Ver vista previa</button>
+      <button type="submit" class="btn btn-edumia-primary">Continuar</button>
     </form>
   </div>
 </div>

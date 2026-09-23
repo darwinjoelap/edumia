@@ -1,17 +1,20 @@
-"""Promoción masiva de estudiantes al siguiente período (cierre de la Fase 1).
+"""Promoción masiva de estudiantes al siguiente período.
 
-Regla: el "siguiente grado" es el de `orden` inmediato superior en Grado.
-Como el fixture de seed_datos_iniciales numera el orden de forma continua
-(Inicial -> Primaria -> Media), esto encadena los niveles automáticamente
-sin tener que tratarlos como casos especiales. El grado de mayor orden
-(5to Año) no tiene siguiente: sus estudiantes quedan "egresados" en vez de
-promovidos a una sección nueva.
+D-21 (revisión pedida explícitamente): en la práctica el personal arma las
+secciones a mano cada año — un curso no necesariamente se mueve completo a
+la sección del mismo nombre en el grado siguiente. Por eso esto ya NO
+empareja automáticamente por nombre: junta a los estudiantes por sección de
+origen y deja que el usuario elija, estudiante por estudiante (con un
+"aplicar a todos" para el caso común), a qué sección destino va cada uno.
+El grado de mayor `orden` (sin grado siguiente) no tiene nada que elegir:
+sus estudiantes se marcan "egresado" directo.
 
-Flujo de dos pasos, igual que la importación de estudiantes: calcular_plan()
-solo lee la base de datos (para la vista previa) y ejecutar_promocion() es
-lo único que escribe, y solo se llama tras la confirmación del usuario.
+Flujo de dos pasos, igual que antes: calcular_plan_manual() solo lee la
+base de datos (para armar el formulario de asignación) y
+ejecutar_promocion_manual() es lo único que escribe, y solo se llama tras
+la confirmación del usuario con las asignaciones ya elegidas.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from django.db import IntegrityError, transaction
 
@@ -19,84 +22,125 @@ from .models import Grado, Inscripcion, Seccion
 
 
 @dataclass
-class FilaPromocion:
+class FilaEstudiante:
+    inscripcion: Inscripcion
+    estudiante: object
+    sugerencia_id: int | None = None
+
+
+@dataclass
+class GrupoSeccion:
     seccion_origen: Seccion
-    cantidad_activos: int
-    accion: str  # "promueve" | "egresa" | "sin_destino"
-    seccion_destino: Seccion | None = None
+    grado_siguiente: Grado | None
+    secciones_destino: list = field(default_factory=list)
+    filas: list = field(default_factory=list)
+
+    @property
+    def cantidad(self):
+        return len(self.filas)
+
+    @property
+    def sin_secciones_destino(self):
+        return self.grado_siguiente is not None and not self.secciones_destino
 
 
-def calcular_plan(periodo_origen, periodo_destino):
-    """Solo lectura: una fila por cada sección del período de origen que
-    tenga al menos un estudiante con inscripción activa."""
-    filas = []
+def _secciones_destino_por_grado(periodo_destino):
+    """grado_id -> lista de secciones activas de ese grado en periodo_destino."""
+    secciones = (
+        Seccion.objects.filter(periodo=periodo_destino, activa=True)
+        .select_related("grado")
+        .order_by("nombre")
+    )
+    mapa = {}
+    for seccion in secciones:
+        mapa.setdefault(seccion.grado_id, []).append(seccion)
+    return mapa
+
+
+def calcular_plan_manual(periodo_origen, periodo_destino):
+    """Solo lectura: un grupo por cada sección del período de origen que
+    tenga al menos un estudiante con inscripción activa, con la lista de
+    esos estudiantes y las secciones destino disponibles para elegir."""
+    grupos = []
     secciones_origen = (
         Seccion.objects.filter(periodo=periodo_origen)
         .select_related("grado")
         .order_by("grado__orden", "nombre")
     )
+    destino_por_grado = _secciones_destino_por_grado(periodo_destino)
+
     for seccion in secciones_origen:
-        cantidad = Inscripcion.objects.filter(
-            seccion=seccion, periodo=periodo_origen, estado=Inscripcion.Estado.ACTIVO
-        ).count()
-        if cantidad == 0:
+        inscripciones = list(
+            Inscripcion.objects.filter(
+                seccion=seccion, periodo=periodo_origen, estado=Inscripcion.Estado.ACTIVO
+            )
+            .select_related("estudiante")
+            .order_by("estudiante__apellidos", "estudiante__nombres")
+        )
+        if not inscripciones:
             continue
 
         grado_siguiente = Grado.objects.filter(orden=seccion.grado.orden + 1).first()
-        if grado_siguiente is None:
-            filas.append(FilaPromocion(seccion, cantidad, "egresa"))
-            continue
+        secciones_destino = destino_por_grado.get(grado_siguiente.id, []) if grado_siguiente else []
 
-        seccion_destino = Seccion.objects.filter(
-            periodo=periodo_destino, grado=grado_siguiente, nombre=seccion.nombre
-        ).first()
-        if seccion_destino:
-            filas.append(FilaPromocion(seccion, cantidad, "promueve", seccion_destino))
-        else:
-            filas.append(FilaPromocion(seccion, cantidad, "sin_destino"))
-    return filas
+        sugerida_id = None
+        if grado_siguiente:
+            sugerida = next((s for s in secciones_destino if s.nombre == seccion.nombre), None)
+            sugerida_id = sugerida.id if sugerida else None
+
+        filas = [
+            FilaEstudiante(insc, insc.estudiante, sugerida_id)
+            for insc in inscripciones
+        ]
+        grupos.append(GrupoSeccion(seccion, grado_siguiente, secciones_destino, filas))
+
+    return grupos
 
 
-def ejecutar_promocion(periodo_origen, periodo_destino, fecha):
-    """Aplica el plan calculado por calcular_plan(). Es seguro volver a
-    correrla dos veces: a un estudiante ya promovido/egresado no se le
-    vuelve a tocar."""
+def ejecutar_promocion_manual(periodo_origen, periodo_destino, fecha, asignaciones):
+    """Aplica las asignaciones elegidas por el usuario.
+
+    `asignaciones`: {estudiante_id: seccion_destino_id (o None si no se
+    eligió)}. Es seguro volver a correrla: a un estudiante ya promovido o
+    egresado no se le vuelve a tocar, y los que quedaron sin sección elegida
+    se pueden completar en una corrida posterior.
+    """
     resultado = {"promovidos": 0, "egresados": 0, "ya_existian": 0, "sin_destino": 0}
 
-    for fila in calcular_plan(periodo_origen, periodo_destino):
-        if fila.accion == "sin_destino":
-            resultado["sin_destino"] += fila.cantidad_activos
-            continue
+    for grupo in calcular_plan_manual(periodo_origen, periodo_destino):
+        for fila in grupo.filas:
+            estudiante = fila.estudiante
 
-        inscripciones = Inscripcion.objects.filter(
-            seccion=fila.seccion_origen, periodo=periodo_origen, estado=Inscripcion.Estado.ACTIVO
-        ).select_related("estudiante")
-
-        for inscripcion in inscripciones:
-            if fila.accion == "egresa":
-                if inscripcion.estado != Inscripcion.Estado.EGRESADO:
-                    inscripcion.estado = Inscripcion.Estado.EGRESADO
-                    inscripcion.save(update_fields=["estado"])
+            if grupo.grado_siguiente is None:
+                if fila.inscripcion.estado != Inscripcion.Estado.EGRESADO:
+                    fila.inscripcion.estado = Inscripcion.Estado.EGRESADO
+                    fila.inscripcion.save(update_fields=["estado"])
                     resultado["egresados"] += 1
                 continue
 
-            # accion == "promueve"
             ya_tiene = Inscripcion.objects.filter(
-                estudiante=inscripcion.estudiante, periodo=periodo_destino
+                estudiante=estudiante, periodo=periodo_destino
             ).exists()
             if ya_tiene:
                 resultado["ya_existian"] += 1
                 continue
+
+            seccion_destino_id = asignaciones.get(estudiante.id)
+            if not seccion_destino_id:
+                resultado["sin_destino"] += 1
+                continue
             try:
                 with transaction.atomic():
                     Inscripcion.objects.create(
-                        estudiante=inscripcion.estudiante,
-                        seccion=fila.seccion_destino,
+                        estudiante=estudiante,
+                        seccion_id=seccion_destino_id,
                         periodo=periodo_destino,
                         fecha=fecha,
                     )
                 resultado["promovidos"] += 1
             except IntegrityError:
+                # Carrera con otra confirmación simultánea, o el estudiante
+                # ya tenía inscripción en el destino (caso raro).
                 resultado["ya_existian"] += 1
 
     return resultado
