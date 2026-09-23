@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block titulo %}Registrar aporte — Edumia{% endblock %}
+{% block titulo_topbar %}Registrar aporte{% endblock %}
+{% block contenido %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+  <div>
+    <h1 class="h3 mb-1">Registrar aporte</h1>
+    <p class="text-muted mb-0">
+      Queda en estado «registrado», pendiente de que un administrador lo verifique desde la
+      <a href="{% url 'ingresos:aporte_bandeja' %}">bandeja de verificación</a>.
+    </p>
+  </div>
+</div>
+
+{% if form.non_field_errors %}
+  <div class="alert alert-danger">
+    {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+  </div>
+{% endif %}
+
+<div class="card card-edumia">
+  <div class="card-body p-4">
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <h2 class="h6 text-uppercase text-muted mb-3">Concepto y estudiante</h2>
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.concepto.id_for_label }}">{{ form.concepto.label }}</label>
+          {{ form.concepto }}
+          {% if form.concepto.errors %}<div class="text-danger small mt-1">{% for error in form.concepto.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.inscripcion.id_for_label }}">{{ form.inscripcion.label }}</label>
+          {{ form.inscripcion }}
+          <div class="form-text">{{ form.inscripcion.help_text }}</div>
+          {% if form.inscripcion.errors %}<div class="text-danger small mt-1">{% for error in form.inscripcion.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.mes_cubierto.id_for_label }}">{{ form.mes_cubierto.label }}</label>
+          {{ form.mes_cubierto }}
+          <div class="form-text">Solo si el concepto es mensual.</div>
+          {% if form.mes_cubierto.errors %}<div class="text-danger small mt-1">{% for error in form.mes_cubierto.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+      </div>
+
+      <h2 class="h6 text-uppercase text-muted mb-3 mt-2">Monto</h2>
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.monto.id_for_label }}">{{ form.monto.label }}</label>
+          {{ form.monto }}
+          {% if form.monto.errors %}<div class="text-danger small mt-1">{% for error in form.monto.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.moneda.id_for_label }}">{{ form.moneda.label }}</label>
+          {{ form.moneda }}
+          {% if form.moneda.errors %}<div class="text-danger small mt-1">{% for error in form.moneda.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.tasa.id_for_label }}">{{ form.tasa.label }}</label>
+          {{ form.tasa }}
+          {% if form.tasa.errors %}<div class="text-danger small mt-1">{% for error in form.tasa.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+      </div>
+      <div class="form-check mb-3">
+        {{ form.desviacion_confirmada }}
+        <label class="form-check-label" for="{{ form.desviacion_confirmada.id_for_label }}">{{ form.desviacion_confirmada.label }}</label>
+        <div class="form-text">Solo hace falta marcarlo si el sistema avisa que el monto se aleja del esperado para este concepto y grado.</div>
+      </div>
+
+      <h2 class="h6 text-uppercase text-muted mb-3 mt-2">Pago</h2>
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.forma_pago.id_for_label }}">{{ form.forma_pago.label }}</label>
+          {{ form.forma_pago }}
+          {% if form.forma_pago.errors %}<div class="text-danger small mt-1">{% for error in form.forma_pago.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.fecha_pago.id_for_label }}">{{ form.fecha_pago.label }}</label>
+          {{ form.fecha_pago }}
+          {% if form.fecha_pago.errors %}<div class="text-danger small mt-1">{% for error in form.fecha_pago.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.banco_destino.id_for_label }}">{{ form.banco_destino.label }}</label>
+          {{ form.banco_destino }}
+          {% if form.banco_destino.errors %}<div class="text-danger small mt-1">{% for error in form.banco_destino.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.banco_origen.id_for_label }}">{{ form.banco_origen.label }}</label>
+          {{ form.banco_origen }}
+          {% if form.banco_origen.errors %}<div class="text-danger small mt-1">{% for error in form.banco_origen.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.referencia.id_for_label }}">{{ form.referencia.label }}</label>
+          {{ form.referencia }}
+          {% if form.referencia.errors %}<div class="text-danger small mt-1">{% for error in form.referencia.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.telefono_emisor.id_for_label }}">{{ form.telefono_emisor.label }}</label>
+          {{ form.telefono_emisor }}
+          {% if form.telefono_emisor.errors %}<div class="text-danger small mt-1">{% for error in form.telefono_emisor.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.cedula_titular.id_for_label }}">{{ form.cedula_titular.label }}</label>
+          {{ form.cedula_titular }}
+          {% if form.cedula_titular.errors %}<div class="text-danger small mt-1">{% for error in form.cedula_titular.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.nombre_titular.id_for_label }}">{{ form.nombre_titular.label }}</label>
+          {{ form.nombre_titular }}
+          {% if form.nombre_titular.errors %}<div class="text-danger small mt-1">{% for error in form.nombre_titular.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.nota_pago.id_for_label }}">{{ form.nota_pago.label }}</label>
+          {{ form.nota_pago }}
+          {% if form.nota_pago.errors %}<div class="text-danger small mt-1">{% for error in form.nota_pago.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+      </div>
+
+      <h2 class="h6 text-uppercase text-muted mb-3 mt-2">Quién entrega</h2>
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.entregado_por.id_for_label }}">{{ form.entregado_por.label }}</label>
+          {{ form.entregado_por }}
+          {% if form.entregado_por.errors %}<div class="text-danger small mt-1">{% for error in form.entregado_por.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.entregado_por_nombre.id_for_label }}">{{ form.entregado_por_nombre.label }}</label>
+          {{ form.entregado_por_nombre }}
+          <div class="form-text">Si quien entrega no está registrado como representante.</div>
+          {% if form.entregado_por_nombre.errors %}<div class="text-danger small mt-1">{% for error in form.entregado_por_nombre.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-edumia-primary">Registrar aporte</button>
+      <a href="{% url 'inicio' %}" class="btn btn-outline-secondary">Cancelar</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

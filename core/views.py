@@ -20,6 +20,11 @@ from .forms import GradoForm, InstitucionForm, PeriodoEscolarForm, SeccionForm
 # accesos de ingreso/gasto en el dashboard.
 ROLES_FINANZAS = ("administrador", "responsable_fondo", "director", "auditor")
 
+# Subconjunto de ROLES_FINANZAS que además puede registrar aportes (Fase 3):
+# director y auditor ven el balance, pero no capturan pagos. Debe coincidir
+# con ingresos.views.ROLES_REGISTRO.
+ROLES_REGISTRO_INGRESOS = ("administrador", "responsable_fondo")
+
 # Rol con control total sobre la configuración general (distinto del
 # superusuario de Django, que sigue siendo el único con acceso a /admin/).
 ROLES_CONFIGURACION = ("administrador",)
@@ -66,6 +71,7 @@ def inicio(request):
         secciones = secciones.filter(docente_responsable=request.user)
 
     puede_ver_finanzas = request.user.is_superuser or rol in ROLES_FINANZAS
+    puede_registrar_ingresos = request.user.is_superuser or rol in ROLES_REGISTRO_INGRESOS
     puede_configurar = request.user.is_superuser or rol in ROLES_CONFIGURACION
 
     # Todavía no existen los modelos de Ingreso/Gasto (Fase 3 y 5): el
@@ -93,6 +99,7 @@ def inicio(request):
         "secciones": secciones,
         "total_secciones": secciones.count(),
         "puede_ver_finanzas": puede_ver_finanzas,
+        "puede_registrar_ingresos": puede_registrar_ingresos,
         "puede_configurar": puede_configurar,
         "balance": formatear(balance_ves),
         "balance_usd": balance_usd,

@@ -48,7 +48,11 @@
   <div class="col-lg-7">
     <div class="row g-3 h-100">
       <div class="col-sm-6">
+        {% if puede_registrar_ingresos %}
+        <a href="{% url 'ingresos:aporte_registrar' %}" class="action-btn action-btn-ingreso">
+        {% else %}
         <a href="{% url 'core:proximamente' %}?titulo=Registrar%20ingreso" class="action-btn action-btn-ingreso">
+        {% endif %}
           <span class="action-btn-icon"><i class="bi bi-plus-circle-fill"></i></span>
           <div>
             <div class="action-btn-title">Registrar ingreso</div>

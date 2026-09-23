@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }} — Edumia{% endblock %}
+{% block titulo_topbar %}{{ titulo }}{% endblock %}
+{% block contenido %}
+
+<h1 class="h3 mb-4">{{ titulo }}</h1>
+
+<div class="card card-edumia" style="max-width: 560px;">
+  <div class="card-body p-4">
+    <p class="mb-1"><strong>{{ aporte.concepto }}</strong></p>
+    <p class="text-muted mb-3">
+      {{ aporte.monto }} {{ aporte.moneda }} ·
+      {% if aporte.inscripcion %}{{ aporte.inscripcion.estudiante }}{% else %}{{ aporte.entregado_por_nombre|default:aporte.entregado_por|default:"—" }}{% endif %}
+      · {{ aporte.fecha_pago }}
+    </p>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <div class="mb-3">
+        <label class="form-label fw-semibold" for="motivo">{{ etiqueta_motivo }}</label>
+        <textarea class="form-control" id="motivo" name="motivo" rows="3" required>{{ request.POST.motivo }}</textarea>
+      </div>
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+      <button type="submit" class="btn btn-edumia-primary">{{ boton }}</button>
+      <a href="{% url 'ingresos:aporte_bandeja' %}" class="btn btn-outline-secondary">Cancelar</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

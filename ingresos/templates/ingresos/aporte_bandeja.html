@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block titulo %}Bandeja de verificación — Edumia{% endblock %}
+{% block titulo_topbar %}Bandeja de verificación{% endblock %}
+{% block contenido %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+  <div>
+    <h1 class="h3 mb-1">Bandeja de verificación</h1>
+    <p class="text-muted mb-0">Aportes registrados u observados, a la espera de una decisión.</p>
+  </div>
+  <a href="{% url 'ingresos:aporte_registrar' %}" class="btn btn-edumia-primary btn-sm">
+    <i class="bi bi-plus-circle"></i> Registrar aporte
+  </a>
+</div>
+
+<div class="card card-edumia">
+  {% if aportes %}
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead>
+        <tr>
+          <th>Concepto</th>
+          <th>Estudiante / origen</th>
+          <th>Monto</th>
+          <th>Forma de pago</th>
+          <th>Fecha de pago</th>
+          <th>Registrado por</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for aporte in aportes %}
+        <tr>
+          <td>{{ aporte.concepto }}</td>
+          <td>
+            {% if aporte.inscripcion %}
+              {{ aporte.inscripcion.estudiante }}
+              <div class="text-muted small">{{ aporte.inscripcion.seccion }}</div>
+            {% else %}
+              {{ aporte.entregado_por_nombre|default:aporte.entregado_por|default:"—" }}
+              <div class="text-muted small">Ingreso sin estudiante</div>
+            {% endif %}
+          </td>
+          <td>{{ aporte.monto }} {{ aporte.moneda }}</td>
+          <td>{{ aporte.forma_pago }}</td>
+          <td>{{ aporte.fecha_pago }}</td>
+          <td>{{ aporte.registrado_por }}</td>
+          <td>
+            {% if aporte.estado == "observado" %}
+              <span class="badge text-bg-warning">{{ aporte.get_estado_display }}</span>
+            {% else %}
+              <span class="badge text-bg-secondary">{{ aporte.get_estado_display }}</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            {% if puede_verificar %}
+            <div class="d-flex gap-1 justify-content-end">
+              <form method="post" action="{% url 'ingresos:aporte_verificar' aporte.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-success">
+                  <i class="bi bi-check-circle"></i> Verificar
+                </button>
+              </form>
+              <a href="{% url 'ingresos:aporte_observar' aporte.pk %}" class="btn btn-sm btn-outline-warning">
+                <i class="bi bi-exclamation-circle"></i> Observar
+              </a>
+              <a href="{% url 'ingresos:aporte_anular' aporte.pk %}" class="btn btn-sm btn-outline-danger">
+                <i class="bi bi-x-circle"></i> Anular
+              </a>
+            </div>
+            {% else %}
+            <span class="text-muted small">Esperando al administrador</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-inbox d-block mb-2"></i>
+    No hay aportes pendientes de verificación.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
