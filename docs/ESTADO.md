@@ -1,7 +1,7 @@
 # Edumia — Estado del proyecto
 
 Regla: no se empieza una fase sin cerrar la anterior aquí.
-Última actualización: 2026-09-22
+Última actualización: 2026-09-23
 
 **Fase actual:** 2 — Usuarios, roles, tasa y PWA nivel 1 (sin empezar)
 **MVP:** Fases 0–4 (92–126 h)
@@ -86,8 +86,8 @@ Regla: no se empieza una fase sin cerrar la anterior aquí.
 - [x] CRUD de `Seccion` en `/configuracion/secciones/` (adelantado, pedido explícitamente — antes solo existía en el admin de Django, que ahora es exclusivo del superusuario): un grado puede tener varias secciones (ej. "1er grado" con A, B y C); formulario con `grado`, `periodo` (por defecto el activo), `nombre`, `docente_responsable` (limitado a usuarios con rol `docente`) y `activa`; listado filtrable por período (por defecto el activo); "eliminar" es desactivar (`activa=False`, D-09), igual que representantes/estudiantes; nuevo `core/templates/core/configuracion/seccion_lista.html` y `seccion_form.html`
 - [x] Se quitó `Institucion.codigo_dea` (pedido explícitamente, ya no aplica) — migración `core/migrations/0003_remove_institucion_codigo_dea.py`, campo también removido de `InstitucionForm`
 - [x] Promoción masiva con asignación manual de sección destino (implementado, reemplaza el emparejamiento automático por nombre): `academico/promocion.py` reescrito — `calcular_plan_manual()` agrupa por sección de origen con la lista de estudiantes activos, el grado siguiente y las secciones destino disponibles (sugiriendo, sin forzar, la de mismo nombre si existe); `ejecutar_promocion_manual(asignaciones)` aplica lo elegido, es idempotente (a quien ya tiene inscripción en el destino no se le vuelve a tocar) y no bloquea el lote si algunos quedan "sin destino" — se avisa cuántos y se puede volver a correr para completarlos. Paso 2 nuevo (`academico/templates/academico/promocion_asignar.html`): una tarjeta por sección de origen, un `<select>` de sección destino por estudiante (`name="destino_<id>"`, procesado directo del `POST` sin formset), botón "Aplicar a todos" por sección (JS vanilla, sin librerías) y aviso cuando el grado siguiente no tiene ninguna sección creada en el período destino (enlaza a Configuración → Secciones); las secciones sin grado siguiente muestran aviso de "egresa" sin selects. `promocion_form.html` actualizado (ya no menciona `/admin/` ni "mismo nombre" como regla).
-- [ ] `manifest.json`, íconos, service worker (shell + offline) — **pendiente, próxima ronda**
-- [ ] Instalación verificada en Android y escritorio — **pendiente, próxima ronda**
+- [x] PWA nivel 1 (instalabilidad + shell mínimo en caché, sin sincronización offline — eso es la Fase 7): `static/manifest.json` (nombre, colores del sistema de diseño, ícono 192 reusando el favicon existente y un `icon-512.png` nuevo generado a 512×512 desde el logo), service worker Django-renderizado en `core/templates/core/sw.js` servido en la **raíz** del sitio vía `core/views.py:service_worker` + `path("sw.js", ...)` en `config/urls.py` (deliberado: si se sirviera desde `/static/` el scope por defecto quedaría limitado a `/static/` en vez de cubrir todo el sitio) — cachea CSS, logo, favicon y la página de sin conexión al instalarse, estrategia network-first con fallback a caché para estáticos y a `core:sin_conexion` para navegación; `core/templates/core/sin_conexion.html` con botón "Reintentar"; `base.html` con `<link rel="manifest">`, `theme-color` y meta tags de Apple, más el registro del service worker en `<script>` al final del `<body>`
+- [ ] Instalación verificada en Android y escritorio — **pendiente, requiere prueba manual tuya tras el despliegue**
 
 ### Pendiente de validar en el navegador / consola (este lote y los anteriores)
 - [ ] `makemigrations core`, `makemigrations gastos`, `makemigrations cambio`, `migrate` en local; volver a correr `seed_datos_iniciales` (crea el Fondo General)

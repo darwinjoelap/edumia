@@ -5,6 +5,7 @@ from . import views
 app_name = "core"
 
 urlpatterns = [
+    path("sin-conexion/", views.sin_conexion, name="sin_conexion"),
     path("proximamente/", views.proximamente, name="proximamente"),
     path("configuracion/", views.configuracion, name="configuracion"),
     path("configuracion/institucion/", views.InstitucionUpdateView.as_view(), name="institucion_editar"),

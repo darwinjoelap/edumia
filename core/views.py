@@ -22,6 +22,17 @@ ROLES_FINANZAS = ("administrador", "responsable_fondo", "director", "auditor")
 ROLES_CONFIGURACION = ("administrador",)
 
 
+def service_worker(request):
+    """Sirve el service worker en la raíz del sitio (no en /static/) para que
+    su scope por defecto cubra todo el origen, no solo /static/."""
+    return render(request, "core/sw.js", content_type="application/javascript")
+
+
+def sin_conexion(request):
+    """Página de respaldo que el service worker muestra cuando no hay red."""
+    return render(request, "core/sin_conexion.html")
+
+
 def salud(request):
     """Health check de la plataforma.
 
