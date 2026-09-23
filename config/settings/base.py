@@ -141,6 +141,32 @@ STORAGES = {
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 
+# --- Registro de errores ---------------------------------------------------
+# Sin esto, una excepción no manejada con DEBUG=False no deja rastro en los
+# logs de Render (el handler "console" que trae Django por defecto solo
+# imprime si DEBUG=True). Con esta configuración sí se ve el traceback
+# completo en los logs aunque DEBUG esté apagado, que es como corre producción.
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {"class": "logging.StreamHandler"},
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+    },
+}
+
 # --- Reglas de negocio configurables -------------------------------------
 
 # D-13: desviación (en %) del monto esperado a partir de la cual se pide confirmación
