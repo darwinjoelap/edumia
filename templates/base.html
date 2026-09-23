@@ -95,10 +95,6 @@
           </div>
         {% endfor %}
       {% endif %}
-      {% block contenido %}{% endblock %}
-    </main>
-  </div>
-</div>
 
 {% else %}
 
@@ -117,7 +113,16 @@
         </div>
       {% endfor %}
     {% endif %}
+
+{% endif %}
+
     {% block contenido %}{% endblock %}
+
+{% if user.is_authenticated %}
+    </main>
+  </div>
+</div>
+{% else %}
   </div>
 </main>
 {% endif %}
