@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block titulo %}Niveles y grados — Configuración{% endblock %}
+{% block titulo_topbar %}Niveles y grados{% endblock %}
+{% block contenido %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+  <h1 class="h3 mb-0">Niveles y grados</h1>
+  <a href="{% url 'core:grado_crear' %}" class="btn btn-edumia-primary"><i class="bi bi-plus-lg"></i> Nuevo grado</a>
+</div>
+<div class="card card-edumia">
+  {% if grados %}
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead>
+        <tr><th>Orden</th><th>Nombre</th><th>Nivel</th><th class="text-end">Acciones</th></tr>
+      </thead>
+      <tbody>
+      {% for grado in grados %}
+        <tr>
+          <td>{{ grado.orden }}</td>
+          <td>{{ grado.nombre }}</td>
+          <td><span class="badge text-bg-light">{{ grado.get_nivel_display }}</span></td>
+          <td class="text-end">
+            <a href="{% url 'core:grado_editar' grado.pk %}" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <form method="post" action="{% url 'core:grado_eliminar' grado.pk %}" class="d-inline"
+                  onsubmit="return confirm('¿Eliminar el grado «{{ grado }}»? Solo se puede si no tiene secciones asociadas.');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><i class="bi bi-layers d-block mb-2"></i>No hay grados registrados.</div>
+  {% endif %}
+</div>
+{% endblock %}

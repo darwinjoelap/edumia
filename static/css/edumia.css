@@ -450,6 +450,95 @@ h1, h2, h3, h4, h5, h6 { color: var(--edumia-navy-900); font-weight: 700; letter
 
 .empty-state i { font-size: 2rem; color: var(--edumia-border); }
 
+/* -------------------------------------------------------------------------
+   Balance y accesos de ingreso/gasto (dashboard)
+   ------------------------------------------------------------------------- */
+
+.balance-card {
+  border-radius: var(--edumia-radius-lg);
+  background: var(--edumia-gradient-brand);
+  color: #fff;
+  padding: 1.6rem 1.9rem;
+  box-shadow: var(--edumia-shadow-lg);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.balance-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 90% 15%, rgba(249, 178, 59, 0.3), transparent 50%);
+  pointer-events: none;
+}
+
+.balance-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 0.35rem;
+}
+
+.balance-amount {
+  font-size: 2.3rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.6rem;
+  position: relative;
+}
+
+.balance-note {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.75);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  position: relative;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  height: 100%;
+  padding: 1.1rem 1.25rem;
+  border-radius: var(--edumia-radius);
+  text-decoration: none;
+  color: #fff;
+  box-shadow: var(--edumia-shadow);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--edumia-shadow-lg);
+  color: #fff;
+  filter: brightness(1.06);
+}
+
+.action-btn-icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.action-btn-title { font-weight: 700; font-size: 1.02rem; }
+.action-btn-sub { font-size: 0.78rem; color: rgba(255, 255, 255, 0.85); }
+
+.action-btn-ingreso { background: linear-gradient(135deg, var(--edumia-teal-500), var(--edumia-teal-600)); }
+.action-btn-gasto { background: linear-gradient(135deg, #f0784a, var(--edumia-danger)); }
+
 /* Scrollbar sutil dentro del sidebar */
 .edumia-nav::-webkit-scrollbar { width: 6px; }
 .edumia-nav::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 3px; }

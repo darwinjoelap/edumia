@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block titulo %}Configuración — Edumia{% endblock %}
+{% block titulo_topbar %}Configuración general{% endblock %}
+{% block contenido %}
+<div class="mb-4">
+  <h1 class="h3 mb-1">Configuración general</h1>
+  <p class="text-muted mb-0">Datos de la institución, niveles académicos y períodos escolares.</p>
+</div>
+<div class="row g-3">
+  <div class="col-md-4">
+    <a href="{% url 'core:institucion_editar' %}" class="quick-action h-100">
+      <span class="quick-action-icon"><i class="bi bi-building"></i></span>
+      <div>
+        <div class="fw-semibold">Institución</div>
+        <div class="text-muted small">
+          {% if institucion.nombre %}{{ institucion.nombre }}{% else %}Nombre, RIF, dirección y contacto{% endif %}
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-4">
+    <a href="{% url 'core:grado_lista' %}" class="quick-action h-100">
+      <span class="quick-action-icon"><i class="bi bi-layers-fill"></i></span>
+      <div>
+        <div class="fw-semibold">Niveles y grados</div>
+        <div class="text-muted small">{{ total_grados }} grado{{ total_grados|pluralize }} configurado{{ total_grados|pluralize }}</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-4">
+    <a href="{% url 'core:periodo_lista' %}" class="quick-action h-100">
+      <span class="quick-action-icon"><i class="bi bi-calendar-range-fill"></i></span>
+      <div>
+        <div class="fw-semibold">Períodos escolares</div>
+        <div class="text-muted small">{{ total_periodos }} período{{ total_periodos|pluralize }} registrado{{ total_periodos|pluralize }}</div>
+      </div>
+    </a>
+  </div>
+</div>
+{% endblock %}

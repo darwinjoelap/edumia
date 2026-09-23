@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block titulo %}Períodos escolares — Configuración{% endblock %}
+{% block titulo_topbar %}Períodos escolares{% endblock %}
+{% block contenido %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+  <h1 class="h3 mb-0">Períodos escolares</h1>
+  <a href="{% url 'core:periodo_crear' %}" class="btn btn-edumia-primary"><i class="bi bi-plus-lg"></i> Nuevo período</a>
+</div>
+<div class="card card-edumia">
+  {% if periodos %}
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead>
+        <tr><th>Nombre</th><th>Inicio</th><th>Fin</th><th>Estado</th><th class="text-end">Acciones</th></tr>
+      </thead>
+      <tbody>
+      {% for periodo in periodos %}
+        <tr>
+          <td>{{ periodo.nombre }}</td>
+          <td>{{ periodo.fecha_inicio }}</td>
+          <td>{{ periodo.fecha_fin }}</td>
+          <td>
+            {% if periodo.activo %}
+              <span class="badge text-bg-success">Activo</span>
+            {% elif periodo.cerrado %}
+              <span class="badge text-bg-secondary">Cerrado</span>
+            {% else %}
+              <span class="badge text-bg-light">Inactivo</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <a href="{% url 'core:periodo_editar' periodo.pk %}" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-pencil"></i>
+            </a>
+            {% if not periodo.activo and not periodo.cerrado %}
+            <form method="post" action="{% url 'core:periodo_activar' periodo.pk %}" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-outline-success">Activar</button>
+            </form>
+            {% endif %}
+            {% if not periodo.cerrado %}
+            <form method="post" action="{% url 'core:periodo_cerrar' periodo.pk %}" class="d-inline"
+                  onsubmit="return confirm('¿Cerrar el período «{{ periodo }}»? No podrá activarse de nuevo.');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-outline-danger">Cerrar</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><i class="bi bi-calendar-x d-block mb-2"></i>No hay períodos registrados.</div>
+  {% endif %}
+</div>
+{% endblock %}

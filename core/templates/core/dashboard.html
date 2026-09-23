@@ -13,8 +13,47 @@
 
 {% if not periodo_activo %}
   <div class="alert alert-warning">
-    No hay un período escolar activo. Actívalo en <a href="/admin/core/periodoescolar/">/admin/</a> para poder inscribir estudiantes.
+    No hay un período escolar activo.
+    {% if puede_configurar %}Actívalo en <a href="{% url 'core:periodo_lista' %}">Configuración → Períodos escolares</a>{% else %}Pídele a un administrador que lo active{% endif %}
+    para poder inscribir estudiantes.
   </div>
+{% endif %}
+
+{% if puede_ver_finanzas %}
+<div class="row g-3 mb-4">
+  <div class="col-lg-5">
+    <div class="balance-card h-100">
+      <div class="balance-label">Balance disponible</div>
+      <div class="balance-amount">Bs. {{ balance|default:"0,00" }}</div>
+      <div class="balance-note">
+        <i class="bi bi-info-circle"></i>
+        Se calculará solo cuando entren en marcha los módulos de ingresos y gastos.
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="row g-3 h-100">
+      <div class="col-sm-6">
+        <a href="{% url 'core:proximamente' %}?titulo=Registrar%20ingreso" class="action-btn action-btn-ingreso">
+          <span class="action-btn-icon"><i class="bi bi-plus-circle-fill"></i></span>
+          <div>
+            <div class="action-btn-title">Registrar ingreso</div>
+            <div class="action-btn-sub">Aportes y otros ingresos</div>
+          </div>
+        </a>
+      </div>
+      <div class="col-sm-6">
+        <a href="{% url 'core:proximamente' %}?titulo=Registrar%20gasto" class="action-btn action-btn-gasto">
+          <span class="action-btn-icon"><i class="bi bi-dash-circle-fill"></i></span>
+          <div>
+            <div class="action-btn-title">Registrar gasto</div>
+            <div class="action-btn-sub">Compras y pagos del fondo</div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
 {% endif %}
 
 <div class="row g-3 mb-4">
@@ -89,13 +128,24 @@
               </div>
             </a>
           </div>
-          {% if user.is_staff %}
+          {% if puede_configurar %}
+          <div class="col-sm-6">
+            <a href="{% url 'core:configuracion' %}" class="quick-action">
+              <span class="quick-action-icon"><i class="bi bi-sliders"></i></span>
+              <div>
+                <div class="fw-semibold">Configuración</div>
+                <div class="text-muted small">Institución, niveles, períodos</div>
+              </div>
+            </a>
+          </div>
+          {% endif %}
+          {% if user.is_superuser %}
           <div class="col-sm-6">
             <a href="/admin/" class="quick-action">
               <span class="quick-action-icon"><i class="bi bi-gear-fill"></i></span>
               <div>
-                <div class="fw-semibold">Administración</div>
-                <div class="text-muted small">Períodos, usuarios, catálogos</div>
+                <div class="fw-semibold">Panel de Django</div>
+                <div class="text-muted small">Solo superusuario</div>
               </div>
             </a>
           </div>
@@ -107,7 +157,12 @@
 
   <div class="col-lg-5">
     <div class="card card-edumia">
-      <div class="card-header bg-white fw-semibold">Institución</div>
+      <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
+        <span>Institución</span>
+        {% if puede_configurar and institucion.nombre %}
+          <a href="{% url 'core:institucion_editar' %}" class="text-muted small"><i class="bi bi-pencil"></i> Editar</a>
+        {% endif %}
+      </div>
       <div class="card-body">
         {% if institucion.nombre %}
           <p class="mb-1"><strong>{{ institucion.nombre }}</strong></p>
@@ -115,8 +170,8 @@
           <p class="mb-0 text-muted small">{{ institucion.direccion }}</p>
         {% else %}
           <p class="text-muted mb-2">Todavía no se ha completado la información de la institución.</p>
-          {% if user.is_staff %}
-            <a href="/admin/core/institucion/1/change/" class="btn btn-outline-secondary btn-sm">Completar datos</a>
+          {% if puede_configurar %}
+            <a href="{% url 'core:institucion_editar' %}" class="btn btn-outline-secondary btn-sm">Completar datos</a>
           {% endif %}
         {% endif %}
       </div>
