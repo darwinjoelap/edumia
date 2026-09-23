@@ -109,6 +109,13 @@ LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "login"
 
+# Por defecto se imprime en consola (no hay SMTP configurado). Para que el
+# correo de restablecimiento de clave llegue de verdad en producción hay que
+# definir EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend y las
+# variables EMAIL_HOST/EMAIL_PORT/EMAIL_HOST_USER/EMAIL_HOST_PASSWORD/EMAIL_USE_TLS.
+EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="no-responder@edumia.local")
+
 # --- Idioma, zona horaria y formatos -------------------------------------
 
 LANGUAGE_CODE = env("LANGUAGE_CODE", default="es-ve")
@@ -122,6 +129,12 @@ USE_THOUSAND_SEPARATOR = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [BASE_DIR / "static"]
+
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+}
 
 # --- Formularios ----------------------------------------------------------
 

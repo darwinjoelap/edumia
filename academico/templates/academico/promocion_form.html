@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block titulo %}Promoción masiva{% endblock %}
+{% block titulo_topbar %}Promoción masiva{% endblock %}
+{% block contenido %}
+<h1 class="h3 mb-1">Promoción masiva al siguiente período</h1>
+<p class="text-muted mb-4">
+  Período de origen (el activo): <strong>{{ periodo_origen }}</strong>
+</p>
+
+<div class="alert alert-info" style="max-width: 640px;">
+  Antes de promover, asegúrate de tener creado el período destino y sus secciones en
+  <a href="/admin/">/admin/</a> (mismo nombre de sección — ej. "A" — un grado más adelante).
+  Si falta alguna sección destino, esos estudiantes van a quedar marcados como
+  "sin sección destino" en la vista previa y no se van a mover hasta que la crees.
+</div>
+
+<div class="card card-edumia" style="max-width: 520px;">
+  <div class="card-body p-4">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <div class="mb-3">
+        <label class="form-label fw-semibold" for="{{ form.periodo_destino.id_for_label }}">
+          {{ form.periodo_destino.label }}
+        </label>
+        {{ form.periodo_destino }}
+        {% if form.periodo_destino.errors %}
+          <div class="text-danger small mt-1">
+            {% for error in form.periodo_destino.errors %}{{ error }}{% endfor %}
+          </div>
+        {% endif %}
+      </div>
+      <button type="submit" class="btn btn-edumia-primary">Ver vista previa</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

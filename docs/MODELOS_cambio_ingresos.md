@@ -1,7 +1,7 @@
 # Edumia — Diseño de modelos: `cambio` e `ingresos`
 
-Estado: **aprobado** · 2026-09-21
-Depende de: `MODELOS_core_academico.md` (aprobado), D-02, D-06, D-07, D-09.
+Estado: **aprobado** · 2026-09-21, revisado 2026-09-22 (D-19)
+Depende de: `MODELOS_core_academico.md` (aprobado), D-02, D-06, D-07, D-09, D-19.
 
 ---
 
@@ -93,7 +93,7 @@ Resolución del monto esperado (función única `monto_esperado(concepto, inscri
 ### `Aporte` (hereda `MontoBimonedaMixin`, simple-history)
 | Grupo | Campos |
 | --- | --- |
-| Identidad | `uuid_cliente` UUID null único (idempotencia de la Fase 7, ver I-5), `inscripcion` FK PROTECT, `concepto` FK PROTECT, `periodo` FK PROTECT (denormalizado desde `inscripcion.periodo`), `fondo` FK PROTECT no nulo (copia de `concepto.fondo` al registrar; si es null, el Fondo General, ver G-4 en `MODELOS_gastos.md`) |
+| Identidad | `uuid_cliente` UUID null único (idempotencia de la Fase 7, ver I-5), `inscripcion` FK PROTECT **null=True** (I-8 / D-19: vacío para ingresos sin estudiante — rifas, donaciones), `concepto` FK PROTECT, `periodo` FK PROTECT (denormalizado; si hay `inscripcion` sale de `inscripcion.periodo`, si no, del período activo al momento de registrar), `fondo` FK PROTECT no nulo (copia de `concepto.fondo` al registrar; si es null, el Fondo General, ver G-4 en `MODELOS_gastos.md`) |
 | Cobertura | `mes_cubierto` Date null (día 1 del mes; obligatorio si `concepto.periodicidad == mensual`, ver I-1) |
 | Dinero | heredado del mixin |
 | Pago | `forma_pago` FK, `fecha_pago` Date, `banco_destino` FK null, `banco_origen` FK null, `referencia` Char(40) blank, `telefono_emisor` Char(11) blank, `cedula_titular` Char(20) blank, `nombre_titular` Char(150) blank, `nota_pago` Text blank |
@@ -105,12 +105,12 @@ Restricciones y validaciones (en `clean()` y respaldadas en BD cuando se puede):
 1. Campos de pago obligatorios según las banderas de `forma_pago`; si `moneda_fija`, la moneda debe coincidir.
 2. `UniqueConstraint(banco_destino, referencia, fecha_pago)` con `condition=~Q(referencia="")`.
 3. Normalización al guardar de `cedula_titular`, `telefono_emisor` y `referencia` (mayúsculas, sin espacios) con el helper de `core/utils.py`.
-4. Al menos uno de `entregado_por` / `entregado_por_nombre` (el recibo necesita un nombre).
+4. Al menos uno de `entregado_por` / `entregado_por_nombre` (el recibo necesita un nombre), **salvo** que `concepto` sea de un tipo que no lo requiera (ver I-8, ej. una rifa cuyo ingreso se registra en bloque).
 5. `fecha_pago` dentro del rango del período y período no cerrado.
 6. `monto > 0` (`CheckConstraint`).
-7. Si el monto se desvía más de un umbral (propuesta: ±20 %) de `monto_esperado`, pide confirmación y guarda `desviacion_confirmada=True`. No bloquea.
+7. Si el monto se desvía más de un umbral (propuesta: ±20 %) de `monto_esperado`, pide confirmación y guarda `desviacion_confirmada=True`. No bloquea. Solo aplica cuando hay `inscripcion` (la desviación se mide contra `MontoConcepto`, que es por grado; sin estudiante no hay grado que comparar).
 8. `estado == verificado` → solo admite la transición a `anulado`.
-9. `inscripcion.estado` debe ser `activo` al registrar (retirados no aportan; el administrador puede reactivar).
+9. `inscripcion.estado` debe ser `activo` al registrar, **solo si `inscripcion` no es null** (I-8 / D-19). Los ingresos sin estudiante no pasan esta validación.
 
 Índices: `(periodo, estado)`, `(inscripcion, fecha_pago)`, `(registrado_por, estado)`, `(cedula_titular)`, `(telefono_emisor)`, `(referencia)`. Los tres últimos sirven la búsqueda de la Fase 3.
 
@@ -147,6 +147,7 @@ Asignación de número: `transaction.atomic()` + `SerieRecibo.objects.select_for
 - Único `(serie, numero)`.
 - Los montos, tasa y forma de pago **no** se copian: salen del `Aporte`, que ya es inmutable tras verificar.
 - El recibo público muestra el mínimo: número, fecha, monto, concepto, nombre del estudiante y estado (vigente/anulado). Sin cédulas ni teléfono.
+- I-8 / D-19: cuando el `Aporte` no tiene `inscripcion` (ingreso general), `estudiante_texto` y `seccion_texto` quedan vacíos y la plantilla impresa omite esas líneas; el recibo muestra solo concepto, monto, fecha y quien entregó.
 
 Prueba de concurrencia (Fase 4): 20 hilos verificando simultáneamente contra Postgres real (no SQLite); deben salir 20 números consecutivos sin huecos ni duplicados.
 
@@ -160,7 +161,7 @@ erDiagram
   ConceptoIngreso ||--o{ Aporte : clasifica
   ConceptoIngreso ||--o{ MontoConcepto : define
   Grado ||--o{ MontoConcepto : "por grado"
-  Inscripcion ||--o{ Aporte : genera
+  Inscripcion |o--o{ Aporte : "genera (opcional, D-19)"
   FormaPago ||--o{ Aporte : usa
   Banco ||--o{ Aporte : "origen/destino"
   Representante |o--o{ Aporte : entrega
@@ -179,6 +180,7 @@ erDiagram
 - [x] **I-6 Copias congeladas en `Recibo`** de nombres (entregó, estudiante, sección, concepto, docente): cumple "el recibo conserva el nombre tal como se imprimió".
 - [x] **I-7 `Aporte.fondo` copiado al registrar**, para que cambiar el fondo de un concepto no altere aportes ya hechos.
 - [x] Umbral de desviación: ±20 % (aprobado; constante configurable en `settings`)
+- [x] **I-8 (D-19, 2026-09-22) `Aporte.inscripcion` opcional.** Permite ingresos sin estudiante (rifas, donaciones, ingresos varios de la institución). Ver D-19 en `DECISIONES.md` para el detalle completo de las validaciones afectadas.
 
 ## Pendiente que sigue abierto
 

@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block titulo %}Dashboard — Edumia{% endblock %}
+{% block titulo_topbar %}Dashboard{% endblock %}
+{% block contenido %}
+
+<div class="edumia-hero mb-4">
+  <h1 class="h3 mb-1">Hola, {{ user.get_full_name|default:user.get_username }}</h1>
+  <p class="text-muted mb-0">
+    {% if institucion.nombre %}{{ institucion.nombre }}{% else %}Edumia{% endif %}
+    {% if periodo_activo %} · Período activo: <strong>{{ periodo_activo }}</strong>{% else %} · Sin período activo{% endif %}
+  </p>
+</div>
+
+{% if not periodo_activo %}
+  <div class="alert alert-warning">
+    No hay un período escolar activo. Actívalo en <a href="/admin/core/periodoescolar/">/admin/</a> para poder inscribir estudiantes.
+  </div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-tile">
+      <span class="stat-icon stat-icon-navy"><i class="bi bi-people-fill"></i></span>
+      <div>
+        <div class="stat-value">{{ estudiantes_activos }}</div>
+        <div class="stat-label">Estudiantes activos</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-tile">
+      <span class="stat-icon stat-icon-teal"><i class="bi bi-person-badge-fill"></i></span>
+      <div>
+        <div class="stat-value">{{ representantes_activos }}</div>
+        <div class="stat-label">Representantes activos</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-tile">
+      <span class="stat-icon stat-icon-blue"><i class="bi bi-grid-3x3-gap-fill"></i></span>
+      <div>
+        <div class="stat-value">{{ total_secciones }}</div>
+        <div class="stat-label">Secciones activas</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-tile">
+      <span class="stat-icon stat-icon-accent"><i class="bi bi-calendar-event-fill"></i></span>
+      <div>
+        <div class="stat-value" style="font-size: 1.15rem;">{{ periodo_activo|default:"—" }}</div>
+        <div class="stat-label">Período escolar</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card card-edumia mb-4">
+      <div class="card-header bg-white fw-semibold">Accesos rápidos</div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-sm-6">
+            <a href="{% url 'academico:estudiante_lista' %}" class="quick-action">
+              <span class="quick-action-icon"><i class="bi bi-people-fill"></i></span>
+              <div>
+                <div class="fw-semibold">Estudiantes</div>
+                <div class="text-muted small">Ver, buscar y editar</div>
+              </div>
+            </a>
+          </div>
+          <div class="col-sm-6">
+            <a href="{% url 'academico:representante_lista' %}" class="quick-action">
+              <span class="quick-action-icon"><i class="bi bi-person-badge-fill"></i></span>
+              <div>
+                <div class="fw-semibold">Representantes</div>
+                <div class="text-muted small">Ver, buscar y editar</div>
+              </div>
+            </a>
+          </div>
+          <div class="col-sm-6">
+            <a href="{% url 'academico:promocion_masiva' %}" class="quick-action">
+              <span class="quick-action-icon"><i class="bi bi-arrow-up-circle-fill"></i></span>
+              <div>
+                <div class="fw-semibold">Promoción masiva</div>
+                <div class="text-muted small">Al siguiente período</div>
+              </div>
+            </a>
+          </div>
+          {% if user.is_staff %}
+          <div class="col-sm-6">
+            <a href="/admin/" class="quick-action">
+              <span class="quick-action-icon"><i class="bi bi-gear-fill"></i></span>
+              <div>
+                <div class="fw-semibold">Administración</div>
+                <div class="text-muted small">Períodos, usuarios, catálogos</div>
+              </div>
+            </a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card card-edumia">
+      <div class="card-header bg-white fw-semibold">Institución</div>
+      <div class="card-body">
+        {% if institucion.nombre %}
+          <p class="mb-1"><strong>{{ institucion.nombre }}</strong></p>
+          <p class="mb-1 text-muted small">RIF: {{ institucion.rif|default:"—" }}</p>
+          <p class="mb-0 text-muted small">{{ institucion.direccion }}</p>
+        {% else %}
+          <p class="text-muted mb-2">Todavía no se ha completado la información de la institución.</p>
+          {% if user.is_staff %}
+            <a href="/admin/core/institucion/1/change/" class="btn btn-outline-secondary btn-sm">Completar datos</a>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card card-edumia mt-4">
+  <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
+    <span>Secciones del período activo</span>
+    {% if periodo_activo %}<span class="badge text-bg-light text-muted">{{ periodo_activo }}</span>{% endif %}
+  </div>
+  {% if secciones %}
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead>
+        <tr><th>Grado</th><th>Sección</th><th>Docente responsable</th><th></th></tr>
+      </thead>
+      <tbody>
+      {% for seccion in secciones %}
+        <tr>
+          <td>{{ seccion.grado }}</td>
+          <td>{{ seccion.nombre }}</td>
+          <td>{{ seccion.docente_responsable|default:"—" }}</td>
+          <td class="text-end">
+            <a href="{% url 'academico:alta_rapida_seccion' seccion.pk %}" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-person-plus"></i> Alta rápida
+            </a>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-calendar-x d-block mb-2"></i>
+    {% if periodo_activo %}No hay secciones activas en el período actual.{% else %}No hay un período escolar activo.{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

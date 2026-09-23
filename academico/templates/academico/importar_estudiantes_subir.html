@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block titulo %}Importar estudiantes — {{ seccion }}{% endblock %}
+{% block titulo_topbar %}Importar estudiantes{% endblock %}
+{% block contenido %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+  <div>
+    <h1 class="h3 mb-1">Importar estudiantes desde Excel/CSV</h1>
+    <p class="text-muted mb-0">
+      Sección: <strong>{{ seccion }}</strong>
+      {% if periodo_activo %} — Período: <strong>{{ periodo_activo }}</strong>{% endif %}
+    </p>
+  </div>
+  <a href="{% url 'academico:alta_rapida_seccion' seccion.pk %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left"></i> Alta rápida manual
+  </a>
+</div>
+
+{% if not periodo_activo %}
+  <div class="alert alert-danger">
+    No hay un período escolar activo. Actívalo en <a href="/admin/core/periodoescolar/">/admin/</a>
+    antes de continuar.
+  </div>
+{% endif %}
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card card-edumia">
+      <div class="card-body p-4">
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <label class="form-label fw-semibold" for="{{ form.archivo.id_for_label }}">
+            Archivo (.xlsx o .csv)
+          </label>
+          {{ form.archivo }}
+          {% if form.archivo.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.archivo.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+          <button
+              type="submit"
+              class="btn btn-edumia-primary mt-4"
+              {% if not periodo_activo %}disabled{% endif %}>
+            <i class="bi bi-upload"></i> Subir y validar
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card card-edumia bg-light">
+      <div class="card-body p-4">
+        <h2 class="h6 fw-semibold"><i class="bi bi-info-circle me-1"></i> Formato esperado</h2>
+        <p class="small text-muted mb-2">
+          Con fila de encabezado (el orden de columnas no importa) o sin ella —
+          en ese caso se asume este orden:
+        </p>
+        <ul class="small mb-3">
+          <li><code>nombres</code></li>
+          <li><code>apellidos</code></li>
+          <li><code>fecha_nacimiento</code> (AAAA-MM-DD, DD/MM/AAAA o DD/MM/AA)</li>
+          <li><code>sexo</code> (M o F)</li>
+          <li><code>cedula_escolar</code> — opcional</li>
+        </ul>
+        <p class="small text-muted mb-0">
+            Primero se valida todo el archivo y se muestra un resumen; nada
+            se guarda hasta que confirmes en la siguiente pantalla.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

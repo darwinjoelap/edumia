@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block titulo %}Alta rápida — {{ seccion }}{% endblock %}
+{% block titulo_topbar %}Alta rápida de estudiantes{% endblock %}
+{% block contenido %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+  <div>
+    <h1 class="h3 mb-1">Alta rápida de estudiantes</h1>
+    <p class="text-muted mb-0">
+      Sección: <strong>{{ seccion }}</strong>
+      {% if periodo_activo %} — Período: <strong>{{ periodo_activo }}</strong>{% endif %}
+    </p>
+  </div>
+  <a href="{% url 'academico:importar_estudiantes_seccion' seccion.pk %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-file-earmark-spreadsheet"></i> Importar desde Excel/CSV
+  </a>
+</div>
+
+{% if not periodo_activo %}
+  <div class="alert alert-danger">
+    No hay un período escolar activo. Actívalo en <a href="/admin/core/periodoescolar/">/admin/</a>
+    antes de continuar.
+  </div>
+{% endif %}
+
+<p class="text-muted">
+  Llena solo las filas que necesites; las que dejes vacías se ignoran.
+  Si necesitas más de {{ filas }} filas,
+  <a href="?filas={{ filas|add:10 }}">agrega 10 más</a>.
+</p>
+
+<div class="card card-edumia">
+  <div class="card-body p-4">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {{ formset.management_form }}
+      {% if formset.non_form_errors %}
+        <div class="alert alert-warning">
+          {% for error in formset.non_form_errors %}<div>{{ error }}</div>{% endfor %}
+        </div>
+      {% endif %}
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr>
+              <th style="width: 4%">#</th>
+              <th>Nombres</th>
+              <th>Apellidos</th>
+              <th>Fecha de nacimiento</th>
+              <th>Sexo</th>
+              <th>Cédula escolar (opcional)</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for form in formset %}
+            <tr>
+              <td>{{ forloop.counter }}</td>
+              <td>{{ form.nombres }}</td>
+              <td>{{ form.apellidos }}</td>
+              <td>{{ form.fecha_nacimiento }}</td>
+              <td>{{ form.sexo }}</td>
+              <td>{{ form.cedula_escolar }}</td>
+            </tr>
+            {% if form.non_field_errors %}
+              <tr>
+                <td></td>
+                <td colspan="5" class="text-danger small">
+                  {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                </td>
+              </tr>
+            {% endif %}
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <button type="submit" class="btn btn-edumia-primary" {% if not periodo_activo %}disabled{% endif %}>
+        Guardar estudiantes
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

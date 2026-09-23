@@ -1,0 +1,455 @@
+/* =========================================================================
+   Edumia — sistema de diseño
+   Paleta tomada directamente del logo: azul marino (gorro), azul-teal
+   (libro) y naranja (moneda). Un solo archivo, para que toda plantilla que
+   ya usa .card-edumia / .btn-edumia-primary se vea moderna sin tocar su HTML.
+   ========================================================================= */
+
+:root {
+  --edumia-navy-900: #0e3062;
+  --edumia-navy-700: #15467e;
+  --edumia-blue-600: #206497;
+  --edumia-teal-600: #1aa18a;
+  --edumia-teal-500: #22bb9f;
+  --edumia-accent-500: #f9b23b;
+  --edumia-accent-600: #e0940f;
+
+  --edumia-primary: var(--edumia-navy-700);
+  --edumia-primary-dark: var(--edumia-navy-900);
+  --edumia-secondary: var(--edumia-teal-600);
+  --edumia-accent: var(--edumia-accent-500);
+
+  --edumia-bg: #f3f6f8;
+  --edumia-surface: #ffffff;
+  --edumia-text: #1c2733;
+  --edumia-text-muted: #64748b;
+  --edumia-border: #e4e9ee;
+
+  --edumia-success: #1aa16b;
+  --edumia-danger: #e0503f;
+  --edumia-warning: #f9b23b;
+
+  --edumia-radius-sm: 0.5rem;
+  --edumia-radius: 0.9rem;
+  --edumia-radius-lg: 1.25rem;
+
+  --edumia-shadow-sm: 0 1px 2px rgba(14, 48, 98, 0.06);
+  --edumia-shadow: 0 1px 3px rgba(14, 48, 98, 0.07), 0 10px 24px -8px rgba(14, 48, 98, 0.14);
+  --edumia-shadow-lg: 0 20px 45px -12px rgba(14, 48, 98, 0.28);
+
+  --edumia-sidebar-width: 264px;
+  --edumia-topbar-height: 64px;
+
+  --edumia-gradient-brand: linear-gradient(135deg, var(--edumia-navy-700) 0%, var(--edumia-teal-600) 100%);
+  --edumia-gradient-sidebar: linear-gradient(165deg, var(--edumia-navy-900) 0%, var(--edumia-navy-700) 48%, var(--edumia-teal-600) 130%);
+  --edumia-gradient-accent: linear-gradient(135deg, var(--edumia-accent-500) 0%, var(--edumia-accent-600) 100%);
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  background-color: var(--edumia-bg);
+  color: var(--edumia-text);
+  min-height: 100vh;
+}
+
+a { color: var(--edumia-primary); }
+a:hover { color: var(--edumia-teal-600); }
+
+h1, h2, h3, h4, h5, h6 { color: var(--edumia-navy-900); font-weight: 700; letter-spacing: -0.01em; }
+
+.text-muted { color: var(--edumia-text-muted) !important; }
+
+/* -------------------------------------------------------------------------
+   Shell: sidebar + topbar (usuarios autenticados)
+   ------------------------------------------------------------------------- */
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.edumia-sidebar {
+  width: var(--edumia-sidebar-width);
+  background: var(--edumia-gradient-sidebar);
+  color: rgba(255, 255, 255, 0.92);
+  border: none;
+}
+
+@media (min-width: 992px) {
+  .edumia-sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    flex-shrink: 0;
+  }
+}
+
+.edumia-sidebar .offcanvas-header,
+.edumia-sidebar .sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.edumia-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 1.35rem 1.25rem 1.1rem;
+}
+
+.edumia-sidebar-brand img {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.25));
+}
+
+.edumia-sidebar-brand .brand-name {
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: #fff;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.edumia-sidebar-brand .brand-tag {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-top: 0.15rem;
+}
+
+.edumia-nav {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 0.5rem 0.85rem;
+}
+
+.edumia-nav-heading {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.45);
+  padding: 1rem 0.6rem 0.35rem;
+}
+
+.edumia-nav .nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  color: rgba(255, 255, 255, 0.82);
+  border-radius: var(--edumia-radius-sm);
+  padding: 0.55rem 0.7rem;
+  font-weight: 500;
+  font-size: 0.92rem;
+  margin-bottom: 0.15rem;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.edumia-nav .nav-link i { font-size: 1.05rem; width: 1.2rem; text-align: center; }
+
+.edumia-nav .nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.edumia-nav .nav-link.active {
+  background-color: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  box-shadow: inset 3px 0 0 var(--edumia-accent-500);
+}
+
+.edumia-sidebar-footer {
+  padding: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.edumia-sidebar-footer a {
+  color: rgba(255, 255, 255, 0.75);
+}
+.edumia-sidebar-footer a:hover { color: #fff; }
+
+.edumia-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.edumia-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  height: var(--edumia-topbar-height);
+  background: var(--edumia-surface);
+  border-bottom: 1px solid var(--edumia-border);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 1.25rem;
+}
+
+.edumia-topbar-title {
+  font-weight: 700;
+  color: var(--edumia-navy-900);
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.edumia-content {
+  padding: 1.75rem 1.25rem 3rem;
+  flex: 1 1 auto;
+}
+
+/* Cabecera de pantalla anónima (login, recuperar clave) */
+.edumia-guest-topbar {
+  height: var(--edumia-topbar-height);
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+  background: var(--edumia-gradient-brand);
+}
+
+.edumia-guest-main {
+  min-height: calc(100vh - var(--edumia-topbar-height));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1rem;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(26, 161, 138, 0.10), transparent 45%),
+    radial-gradient(circle at 85% 90%, rgba(21, 70, 126, 0.10), transparent 45%),
+    var(--edumia-bg);
+}
+
+/* -------------------------------------------------------------------------
+   Componentes compartidos (usados tal cual en todas las plantillas)
+   ------------------------------------------------------------------------- */
+
+.card-edumia {
+  border: 1px solid var(--edumia-border);
+  border-radius: var(--edumia-radius);
+  box-shadow: var(--edumia-shadow);
+  background-color: var(--edumia-surface);
+}
+
+.card-edumia .card-header {
+  border-bottom: 1px solid var(--edumia-border);
+  border-top-left-radius: var(--edumia-radius) !important;
+  border-top-right-radius: var(--edumia-radius) !important;
+  color: var(--edumia-navy-900);
+}
+
+.btn-edumia-primary {
+  background: var(--edumia-gradient-brand);
+  border: none;
+  color: #fff;
+  font-weight: 600;
+  border-radius: var(--edumia-radius-sm);
+  padding: 0.55rem 1.15rem;
+  box-shadow: 0 6px 16px -6px rgba(21, 70, 126, 0.55);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+}
+
+.btn-edumia-primary:hover,
+.btn-edumia-primary:focus {
+  color: #fff;
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px -6px rgba(21, 70, 126, 0.6);
+}
+
+.btn-edumia-primary:disabled {
+  opacity: 0.55;
+  box-shadow: none;
+  transform: none;
+}
+
+.btn-outline-secondary {
+  border-color: var(--edumia-border);
+  color: var(--edumia-text);
+}
+.btn-outline-secondary:hover {
+  background-color: var(--edumia-navy-900);
+  border-color: var(--edumia-navy-900);
+  color: #fff;
+}
+
+.form-control, .form-select {
+  border-radius: 0.6rem;
+  border-color: var(--edumia-border);
+}
+.form-control:focus, .form-select:focus {
+  border-color: var(--edumia-teal-600);
+  box-shadow: 0 0 0 0.2rem rgba(26, 161, 138, 0.18);
+}
+
+.table thead th {
+  font-weight: 700;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--edumia-text-muted);
+  border-bottom-width: 1px;
+  border-color: var(--edumia-border);
+  background-color: #fafbfc;
+}
+
+.table td { border-color: var(--edumia-border); vertical-align: middle; }
+.table-hover tbody tr:hover { background-color: rgba(26, 161, 138, 0.05); }
+
+.fila-error { background-color: #fdf1ef; }
+.fila-ok { background-color: #eefaf5; }
+
+.badge {
+  border-radius: 999px;
+  font-weight: 600;
+  padding: 0.4em 0.75em;
+  letter-spacing: 0.01em;
+}
+
+.pagination .page-link {
+  color: var(--edumia-primary);
+  border-color: var(--edumia-border);
+  border-radius: 0.5rem;
+  margin: 0 0.15rem;
+}
+.pagination .page-item.active .page-link {
+  background: var(--edumia-gradient-brand);
+  border-color: transparent;
+}
+
+.alert { border-radius: var(--edumia-radius-sm); border: none; }
+.alert-danger { background-color: #fdecea; color: #9a2f22; }
+.alert-warning { background-color: #fef4e3; color: #8a5a0a; }
+.alert-info { background-color: #e8f6f3; color: #0f6b58; }
+.alert-success { background-color: #e9f8f0; color: #146c43; }
+
+/* -------------------------------------------------------------------------
+   Dashboard
+   ------------------------------------------------------------------------- */
+
+.edumia-hero {
+  border-radius: var(--edumia-radius-lg);
+  background: var(--edumia-gradient-sidebar);
+  color: #fff;
+  padding: 1.75rem 2rem;
+  box-shadow: var(--edumia-shadow-lg);
+  position: relative;
+  overflow: hidden;
+}
+
+.edumia-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 88% 20%, rgba(249, 178, 59, 0.28), transparent 45%);
+  pointer-events: none;
+}
+
+.edumia-hero h1 { color: #fff; }
+.edumia-hero .text-muted { color: rgba(255, 255, 255, 0.75) !important; }
+
+.stat-tile {
+  border-radius: var(--edumia-radius);
+  background: var(--edumia-surface);
+  border: 1px solid var(--edumia-border);
+  box-shadow: var(--edumia-shadow);
+  padding: 1.25rem 1.35rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  height: 100%;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.stat-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--edumia-shadow-lg);
+}
+
+.stat-tile .stat-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.stat-tile .stat-value {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: var(--edumia-navy-900);
+  line-height: 1.1;
+}
+
+.stat-tile .stat-label {
+  font-size: 0.82rem;
+  color: var(--edumia-text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.stat-icon-navy { background: linear-gradient(135deg, var(--edumia-navy-700), var(--edumia-navy-900)); }
+.stat-icon-teal { background: linear-gradient(135deg, var(--edumia-teal-500), var(--edumia-teal-600)); }
+.stat-icon-blue { background: linear-gradient(135deg, var(--edumia-blue-600), var(--edumia-navy-700)); }
+.stat-icon-accent { background: var(--edumia-gradient-accent); }
+
+.quick-action {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--edumia-radius-sm);
+  border: 1px solid var(--edumia-border);
+  background-color: var(--edumia-surface);
+  color: var(--edumia-text);
+  text-decoration: none;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.quick-action:hover {
+  border-color: var(--edumia-teal-600);
+  color: var(--edumia-text);
+  transform: translateY(-1px);
+  box-shadow: var(--edumia-shadow);
+}
+
+.quick-action .quick-action-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.7rem;
+  background: rgba(21, 70, 126, 0.08);
+  color: var(--edumia-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: var(--edumia-text-muted);
+}
+
+.empty-state i { font-size: 2rem; color: var(--edumia-border); }
+
+/* Scrollbar sutil dentro del sidebar */
+.edumia-nav::-webkit-scrollbar { width: 6px; }
+.edumia-nav::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 3px; }

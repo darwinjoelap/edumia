@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block titulo %}Vista previa de promoción{% endblock %}
+{% block titulo_topbar %}Promoción masiva{% endblock %}
+{% block contenido %}
+<h1 class="h3 mb-1">Vista previa de la promoción</h1>
+<p class="text-muted mb-4">
+  De <strong>{{ periodo_origen }}</strong> a <strong>{{ periodo_destino }}</strong>
+</p>
+
+<div class="card card-edumia mb-4">
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead>
+        <tr><th>Sección de origen</th><th>Estudiantes activos</th><th>Acción</th><th>Sección destino</th></tr>
+      </thead>
+      <tbody>
+      {% for fila in plan %}
+        <tr class="{% if fila.accion == 'sin_destino' %}fila-error{% elif fila.accion == 'egresa' %}table-warning{% else %}fila-ok{% endif %}">
+          <td>{{ fila.seccion_origen }}</td>
+          <td>{{ fila.cantidad_activos }}</td>
+          <td>
+            {% if fila.accion == "promueve" %}
+              <span class="badge text-bg-success">Promueve</span>
+            {% elif fila.accion == "egresa" %}
+              <span class="badge text-bg-warning text-dark">Egresa</span>
+            {% else %}
+              <span class="badge text-bg-danger">Sin sección destino</span>
+            {% endif %}
+          </td>
+          <td>{{ fila.seccion_destino|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4" class="text-center text-muted py-4">No hay estudiantes activos que promover.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<form method="post" class="d-flex gap-2">
+  {% csrf_token %}
+  <button type="submit" name="confirmar" value="1" class="btn btn-edumia-primary" {% if not plan %}disabled{% endif %}>
+    <i class="bi bi-check2-circle"></i> Confirmar promoción
+  </button>
+  <a href="{% url 'academico:promocion_masiva' %}" class="btn btn-outline-secondary">Cancelar</a>
+</form>
+{% endblock %}

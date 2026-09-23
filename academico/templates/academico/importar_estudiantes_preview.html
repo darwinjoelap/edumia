@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block titulo %}Vista previa de importación — {{ seccion }}{% endblock %}
+{% block titulo_topbar %}Vista previa de importación{% endblock %}
+{% block contenido %}
+<div class="mb-4">
+  <h1 class="h3 mb-1">Vista previa de la importación</h1>
+  <p class="text-muted mb-0">
+    Sección: <strong>{{ seccion }}</strong>
+    {% if periodo_activo %} — Período: <strong>{{ periodo_activo }}</strong>{% endif %}
+  </p>
+</div>
+
+{% if not periodo_activo %}
+  <div class="alert alert-danger">
+    No hay un período escolar activo. Actívalo en <a href="/admin/core/periodoescolar/">/admin/</a>
+    antes de confirmar.
+  </div>
+{% endif %}
+
+{% if recuperado_de_sesion %}
+  <div class="alert alert-info">
+    Esta vista previa quedó pendiente de una subida anterior. Si quieres ver de nuevo el
+    detalle de las filas con error, vuelve a subir el archivo.
+  </div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-lg-3">
+    <div class="card card-edumia">
+      <div class="card-body">
+        <div class="text-muted small">Listas para importar</div>
+        <div class="fs-3 fw-bold text-success">{{ filas_validas|length }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card card-edumia">
+      <div class="card-body">
+        <div class="text-muted small">Con errores</div>
+        <div class="fs-3 fw-bold text-danger">
+          {% if recuperado_de_sesion %}{{ total_error_sesion }}{% else %}{{ filas_error|length }}{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if filas_error %}
+<div class="card card-edumia mb-4">
+  <div class="card-header bg-white fw-semibold">Filas con error (no se importarán)</div>
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead><tr><th>Fila</th><th>Motivo</th></tr></thead>
+      <tbody>
+      {% for fila in filas_error %}
+        <tr class="fila-error">
+          <td>{{ fila.numero }}</td>
+          <td>{{ fila.errores|join:"; " }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if filas_validas %}
+<div class="card card-edumia mb-4">
+  <div class="card-header bg-white fw-semibold">Estudiantes listos para importar</div>
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead>
+        <tr>
+          <th>Fila</th><th>Nombres</th><th>Apellidos</th>
+          <th>Nacimiento</th><th>Sexo</th><th>Cédula</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for fila in filas_validas %}
+        <tr class="fila-ok">
+          <td>{{ fila.numero }}</td>
+          <td>{{ fila.nombres }}</td>
+          <td>{{ fila.apellidos }}</td>
+          <td>{{ fila.fecha_nacimiento }}</td>
+          <td>{{ fila.sexo }}</td>
+          <td>{{ fila.cedula_escolar|default:"—" }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="alert alert-warning">No hay estudiantes válidos para importar de este archivo.</div>
+{% endif %}
+
+<form method="post" class="d-flex gap-2">
+  {% csrf_token %}
+  <button
+      type="submit" name="confirmar" value="1"
+      class="btn btn-edumia-primary"
+      {% if not filas_validas or not periodo_activo %}disabled{% endif %}>
+    <i class="bi bi-check2-circle"></i> Confirmar e importar {{ filas_validas|length }} estudiante(s)
+  </button>
+  <button type="submit" name="cancelar" value="1" class="btn btn-outline-secondary">Cancelar</button>
+</form>
+{% endblock %}
