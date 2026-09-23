@@ -92,6 +92,7 @@ Regla: no se empieza una fase sin cerrar la anterior aquí.
 
 ### Pendiente de validar en el navegador / consola (este lote y los anteriores)
 - [ ] `makemigrations core`, `makemigrations gastos`, `makemigrations cambio`, `migrate` en local; volver a correr `seed_datos_iniciales` (crea el Fondo General)
+- [ ] `migrate` de `ingresos.0001_initial` contra tu Postgres real (Neon `dev`) y luego `seed_datos_iniciales` para cargar bancos y formas de pago; ya se probó contra SQLite en un entorno aparte, pero falta la confirmación contra Postgres
 - [ ] Crear un usuario + `PerfilUsuario` desde el admin, probar login/logout, cambio de contraseña y recuperación (el correo sale por consola con el backend por defecto)
 - [ ] Confirmar que un usuario con rol docente no puede entrar a la alta rápida/importación de una sección que no es la suya (403)
 - [ ] Cargar una `TasaCambio` desde el admin y correr `python manage.py test cambio` (deben pasar todas las pruebas)
@@ -100,13 +101,17 @@ Regla: no se empieza una fase sin cerrar la anterior aquí.
 - [ ] Antes de que la recuperación de contraseña sirva de verdad en producción: configurar `EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend` y las variables `EMAIL_HOST*` en Render
 
 ## Fase 3 — Ingresos
-- [ ] Modelos `ingresos` (incluye `MontoConcepto`, y `Aporte.inscripcion` opcional por D-19) + migraciones
-- [ ] `FormaPago` con banderas por campo + formulario HTMX
-- [ ] Aporte individual y registro en lote por sección
-- [ ] Registro de ingresos sin estudiante (rifas, donaciones — D-19)
+- [x] Modelos `ingresos` (`docs/MODELOS_cambio_ingresos.md`, aprobado): `Banco` (catálogo), `FormaPago` (con las 5 banderas: banco destino/origen, referencia, teléfono, cédula), `ConceptoIngreso` (periodicidad única/mensual, monto y moneda sugeridos, fondo), `MontoConcepto` (monto esperado por concepto+grado+período, único, D-07) y `Aporte` (con `MontoBimonedaMixin` nuevo en `cambio/models.py`, compartido a futuro con `Gasto` de la Fase 5). `Aporte.inscripcion` es opcional (D-19: ingresos sin estudiante — rifas, donaciones). `SerieRecibo`/`Recibo` NO se construyen aquí: son de la Fase 4.
+- [x] `Aporte.clean()` implementa las 9 validaciones del diseño: banderas de `forma_pago`, quién entrega obligatorio, fecha dentro del período (y período no cerrado), monto positivo, inscripción activa, mes cubierto obligatorio si el concepto es mensual, y desviación del monto esperado (±`UMBRAL_DESVIACION_MONTO`, ya en `settings`) comparando convertido a la moneda del esperado (I-2), no solo cuando coinciden literalmente.
+- [x] `Aporte.transicionar(nuevo_estado, usuario, motivo)`: único método que cambia `estado` (borrador→registrado→verificado/observado→…→anulado), valida las transiciones permitidas, exige motivo en observado/anulado. La emisión del recibo al verificar queda pendiente de conectar cuando exista `Recibo` (Fase 4).
+- [x] `TasaCambio` (en `cambio/models.py`) ahora bloquea su propia edición de `valor` si ya tiene aportes asociados (D-02, regla que estaba pendiente de que existiera una transacción que la referenciara).
+- [x] Migración `ingresos/migrations/0001_initial.py` (incluye `HistoricalAporte`, `simple-history`). `seed_datos_iniciales` ahora también carga el catálogo de 24 bancos venezolanos y las 5 formas de pago sugeridas del diseño (Efectivo, Divisa efectivo, Pago móvil, Transferencia, Zelle) — idempotente.
+- [x] Validado en este entorno (no en el tuyo, que no tiene Shell): se instaló Django en un sandbox aparte, se corrió `makemigrations --check` (sin cambios pendientes), `migrate` contra SQLite limpio, la suite `cambio` completa (15 pruebas, sigue en verde) y un script manual con 13 casos (montos, desviación, banderas de forma de pago, máquina de estados, inmutabilidad D-09, bloqueo de edición de tasa) — todos pasaron. Aun así, **falta correr `makemigrations`/`migrate` contra tu Postgres real** (ver pendientes de validación abajo): el comportamiento de `UniqueConstraint`/`CheckConstraint` puede diferir entre SQLite y Postgres.
+- [ ] `FormaPago` con formulario propio en Configuración (por ahora solo se administra desde `/admin/`, como Sección antes de tener su CRUD)
+- [ ] Aporte individual y registro en lote por sección (vistas/formularios — siguiente paso)
 - [ ] Bandeja de verificación
-- [ ] Transiciones de estado y anulación con motivo
 - [ ] Búsqueda por referencia, cédula y teléfono
+- [ ] `ConceptoIngreso`/`MontoConcepto` con CRUD en Configuración (por ahora solo admin)
 
 ## Fase 4 — Recibos
 - [ ] `SerieRecibo` con `select_for_update()`

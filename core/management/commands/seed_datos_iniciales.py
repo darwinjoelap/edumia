@@ -6,6 +6,47 @@ from django.db import transaction
 from academico.models import Grado
 from core.models import Institucion, PeriodoEscolar
 from gastos.models import Fondo
+from ingresos.models import Banco, FormaPago
+
+# Bancos venezolanos más comunes (código SUDEBAN). Lista de arranque: si algún
+# código está desactualizado, se corrige desde /admin/ sin tocar código.
+BANCOS = [
+    ("0102", "Banco de Venezuela"),
+    ("0104", "Banco Venezolano de Crédito"),
+    ("0105", "Banco Mercantil"),
+    ("0108", "Banco Provincial"),
+    ("0114", "Bancaribe"),
+    ("0115", "Banco Exterior"),
+    ("0116", "Banco Occidental de Descuento"),
+    ("0128", "Banco Caroní"),
+    ("0134", "Banesco"),
+    ("0137", "Banco Sofitasa"),
+    ("0138", "Banco Plaza"),
+    ("0151", "Banco Fondo Común"),
+    ("0156", "100% Banco"),
+    ("0157", "DelSur"),
+    ("0163", "Banco del Tesoro"),
+    ("0166", "Banco Agrícola de Venezuela"),
+    ("0168", "Bancrecer"),
+    ("0169", "Mi Banco"),
+    ("0171", "Banco Activo"),
+    ("0172", "Bancamiga"),
+    ("0174", "Banplus"),
+    ("0175", "Banco Bicentenario"),
+    ("0177", "Banco de la Fuerza Armada Nacional Bolivariana"),
+    ("0191", "Banco Nacional de Crédito"),
+]
+
+# Formas de pago sugeridas (docs/MODELOS_cambio_ingresos.md). Cada tupla:
+# nombre, moneda_fija, requiere_banco_destino, requiere_banco_origen,
+# requiere_referencia, requiere_telefono, requiere_cedula
+FORMAS_PAGO = [
+    ("Efectivo (Bs.)", "VES", False, False, False, False, False),
+    ("Divisa efectivo", "USD", False, False, False, False, False),
+    ("Pago móvil", "VES", True, True, True, True, True),
+    ("Transferencia", "VES", True, False, True, False, True),
+    ("Zelle", "USD", False, False, True, False, False),
+]
 
 # Listado estándar del sistema educativo venezolano.
 # nombre, nivel, orden (orden define la secuencia de promoción, Fase 6)
@@ -31,7 +72,8 @@ class Command(BaseCommand):
     help = (
         "Carga los datos iniciales de Edumia: Institución (valores de ejemplo, "
         "editables luego en el admin), Período escolar activo, el listado "
-        "estándar de Grados (Inicial, Primaria, Media) y el Fondo General. "
+        "estándar de Grados (Inicial, Primaria, Media), el Fondo General y, "
+        "desde la Fase 3, el catálogo de Bancos y Formas de pago. "
         "Es idempotente: se puede volver a ejecutar sin duplicar datos."
     )
 
@@ -41,6 +83,8 @@ class Command(BaseCommand):
             self._crear_periodo()
             self._crear_grados()
             self._crear_fondo_general()
+            self._crear_bancos()
+            self._crear_formas_pago()
 
     def _crear_institucion(self):
         inst = Institucion.obtener()
@@ -95,3 +139,35 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS("Fondo General creado."))
         else:
             self.stdout.write("El Fondo General ya existía, no se modificó.")
+
+    def _crear_bancos(self):
+        creados = 0
+        for codigo, nombre in BANCOS:
+            _, created = Banco.objects.get_or_create(codigo=codigo, defaults={"nombre": nombre})
+            if created:
+                creados += 1
+        existentes = len(BANCOS) - creados
+        self.stdout.write(self.style.SUCCESS(
+            f"Bancos: {creados} creados, {existentes} ya existían."
+        ))
+
+    def _crear_formas_pago(self):
+        creadas = 0
+        for nombre, moneda_fija, req_destino, req_origen, req_ref, req_tel, req_ced in FORMAS_PAGO:
+            _, created = FormaPago.objects.get_or_create(
+                nombre=nombre,
+                defaults={
+                    "moneda_fija": moneda_fija,
+                    "requiere_banco_destino": req_destino,
+                    "requiere_banco_origen": req_origen,
+                    "requiere_referencia": req_ref,
+                    "requiere_telefono": req_tel,
+                    "requiere_cedula": req_ced,
+                },
+            )
+            if created:
+                creadas += 1
+        existentes = len(FORMAS_PAGO) - creadas
+        self.stdout.write(self.style.SUCCESS(
+            f"Formas de pago: {creadas} creadas, {existentes} ya existían."
+        ))
