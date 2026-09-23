@@ -17,4 +17,12 @@ urlpatterns = [
     path("configuracion/periodos/<int:pk>/editar/", views.PeriodoUpdateView.as_view(), name="periodo_editar"),
     path("configuracion/periodos/<int:pk>/activar/", views.periodo_activar, name="periodo_activar"),
     path("configuracion/periodos/<int:pk>/cerrar/", views.periodo_cerrar, name="periodo_cerrar"),
+    path("configuracion/secciones/", views.SeccionListView.as_view(), name="seccion_lista"),
+    path("configuracion/secciones/nueva/", views.SeccionCreateView.as_view(), name="seccion_crear"),
+    path("configuracion/secciones/<int:pk>/editar/", views.SeccionUpdateView.as_view(), name="seccion_editar"),
+    path(
+        "configuracion/secciones/<int:pk>/activar/",
+        views.seccion_toggle_activa,
+        name="seccion_toggle_activa",
+    ),
 ]

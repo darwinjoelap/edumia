@@ -36,5 +36,14 @@
       </div>
     </a>
   </div>
+  <div class="col-md-4">
+    <a href="{% url 'core:seccion_lista' %}" class="quick-action h-100">
+      <span class="quick-action-icon"><i class="bi bi-grid-3x3-gap-fill"></i></span>
+      <div>
+        <div class="fw-semibold">Secciones</div>
+        <div class="text-muted small">{{ total_secciones }} sección{{ total_secciones|pluralize:"es" }} registrada{{ total_secciones|pluralize }}</div>
+      </div>
+    </a>
+  </div>
 </div>
 {% endblock %}

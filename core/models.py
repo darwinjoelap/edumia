@@ -14,7 +14,6 @@ class Institucion(models.Model):
 
     nombre = models.CharField(max_length=200)
     rif = models.CharField(max_length=20)
-    codigo_dea = models.CharField("código DEA", max_length=20, blank=True)
     direccion = models.TextField()
     telefono = models.CharField(max_length=30, blank=True)
     email = models.EmailField(blank=True)

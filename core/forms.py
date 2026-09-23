@@ -1,6 +1,7 @@
 from django import forms
+from django.contrib.auth import get_user_model
 
-from academico.models import Grado
+from academico.models import Grado, Seccion
 
 from .models import Institucion, PeriodoEscolar
 
@@ -8,7 +9,7 @@ from .models import Institucion, PeriodoEscolar
 class InstitucionForm(forms.ModelForm):
     class Meta:
         model = Institucion
-        fields = ["nombre", "rif", "codigo_dea", "direccion", "telefono", "email"]
+        fields = ["nombre", "rif", "direccion", "telefono", "email"]
         widgets = {
             "direccion": forms.Textarea(attrs={"rows": 3}),
         }
@@ -44,3 +45,28 @@ class PeriodoEscolarForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             field.widget.attrs.setdefault("class", "form-control")
+
+
+class SeccionForm(forms.ModelForm):
+    """Una sección pertenece a un grado y a un período (D-20/Fase 1): así
+    '1er grado' puede tener las secciones A, B, C, cada una con su propio
+    docente responsable."""
+
+    class Meta:
+        model = Seccion
+        fields = ["grado", "periodo", "nombre", "docente_responsable", "activa"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["grado"].queryset = Grado.objects.order_by("orden")
+        self.fields["periodo"].queryset = PeriodoEscolar.objects.order_by("-fecha_inicio")
+        self.fields["docente_responsable"].queryset = (
+            get_user_model().objects.filter(perfilusuario__rol="docente").order_by("last_name", "first_name")
+        )
+        self.fields["docente_responsable"].required = False
+        for nombre, field in self.fields.items():
+            if nombre == "activa":
+                field.widget.attrs.setdefault("class", "form-check-input")
+                continue
+            css = "form-select" if nombre in ("grado", "periodo", "docente_responsable") else "form-control"
+            field.widget.attrs.setdefault("class", css)

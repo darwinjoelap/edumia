@@ -11,7 +11,7 @@ from academico.models import Estudiante, Grado, Representante, Seccion
 from core.mixins import RolRequeridoMixin, requiere_rol
 from core.models import Institucion, PeriodoEscolar
 
-from .forms import GradoForm, InstitucionForm, PeriodoEscolarForm
+from .forms import GradoForm, InstitucionForm, PeriodoEscolarForm, SeccionForm
 
 # Roles que manejan dinero (todos menos docente): ven el balance y los
 # accesos de ingreso/gasto en el dashboard.
@@ -88,6 +88,7 @@ def configuracion(request):
         "institucion": Institucion.obtener(),
         "total_grados": Grado.objects.count(),
         "total_periodos": PeriodoEscolar.objects.count(),
+        "total_secciones": Seccion.objects.count(),
     })
 
 
@@ -214,3 +215,78 @@ def periodo_cerrar(request, pk):
         periodo.save(update_fields=["cerrado", "activo", "cerrado_por", "fecha_cierre"])
         messages.success(request, f"Período «{periodo}» cerrado.")
     return redirect("core:periodo_lista")
+
+
+class SeccionListView(RolRequeridoMixin, ListView):
+    """Por defecto muestra solo el período activo (evita listar años
+    anteriores sin querer); se puede ver otro período con ?periodo=<id>."""
+
+    roles_permitidos = ROLES_CONFIGURACION
+    model = Seccion
+    template_name = "core/configuracion/seccion_lista.html"
+    context_object_name = "secciones"
+
+    def get_periodo_filtro(self):
+        periodo_id = self.request.GET.get("periodo")
+        if periodo_id:
+            return PeriodoEscolar.objects.filter(pk=periodo_id).first()
+        return PeriodoEscolar.objects.filter(activo=True).first()
+
+    def get_queryset(self):
+        qs = Seccion.objects.select_related("grado", "periodo", "docente_responsable").order_by(
+            "grado__orden", "nombre"
+        )
+        periodo = self.get_periodo_filtro()
+        if periodo:
+            qs = qs.filter(periodo=periodo)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["periodos"] = PeriodoEscolar.objects.order_by("-fecha_inicio")
+        ctx["periodo_filtro"] = self.get_periodo_filtro()
+        return ctx
+
+
+class SeccionCreateView(RolRequeridoMixin, CreateView):
+    roles_permitidos = ROLES_CONFIGURACION
+    model = Seccion
+    form_class = SeccionForm
+    template_name = "core/configuracion/seccion_form.html"
+    success_url = reverse_lazy("core:seccion_lista")
+
+    def get_initial(self):
+        initial = super().get_initial()
+        periodo_activo = PeriodoEscolar.objects.filter(activo=True).first()
+        if periodo_activo:
+            initial["periodo"] = periodo_activo
+        return initial
+
+    def form_valid(self, form):
+        respuesta = super().form_valid(form)
+        messages.success(self.request, f"Sección «{self.object}» creada.")
+        return respuesta
+
+
+class SeccionUpdateView(RolRequeridoMixin, UpdateView):
+    roles_permitidos = ROLES_CONFIGURACION
+    model = Seccion
+    form_class = SeccionForm
+    template_name = "core/configuracion/seccion_form.html"
+    success_url = reverse_lazy("core:seccion_lista")
+
+    def form_valid(self, form):
+        respuesta = super().form_valid(form)
+        messages.success(self.request, f"Sección «{self.object}» actualizada.")
+        return respuesta
+
+
+@requiere_rol(*ROLES_CONFIGURACION)
+def seccion_toggle_activa(request, pk):
+    seccion = get_object_or_404(Seccion, pk=pk)
+    if request.method == "POST":
+        seccion.activa = not seccion.activa
+        seccion.save(update_fields=["activa"])
+        estado = "activada" if seccion.activa else "desactivada"
+        messages.success(request, f"Sección «{seccion}» {estado}.")
+    return redirect("core:seccion_lista")
