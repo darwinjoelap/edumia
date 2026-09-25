@@ -3,8 +3,8 @@
 Regla: no se empieza una fase sin cerrar la anterior aquí.
 Última actualización: 2026-09-25
 
-**Fase actual:** 5 — Gastos (sin empezar)
-**MVP:** Fases 0–4 (92–126 h) — completo en funcionalidad, quedan pendientes sueltos de validación manual (ver cada fase abajo)
+**Fase actual:** 6 — Reportes y balance (sin empezar)
+**MVP:** Fases 0–5 — completo en funcionalidad, quedan pendientes sueltos de validación manual (ver cada fase abajo)
 
 | Fase | Nombre | Horas | Estado |
 | --- | --- | --- | --- |
@@ -13,19 +13,19 @@ Regla: no se empieza una fase sin cerrar la anterior aquí.
 | 2 | Usuarios, roles, tasa y PWA nivel 1 | 18–24 | **Cerrada** (funcionalidad completa; quedan validaciones manuales sueltas) |
 | 3 | Ingresos | 30–40 | **Cerrada** (2026-09-25) |
 | 4 | Recibos | 16–22 | **Cerrada** (2026-09-25) |
-| 5 | Gastos | 28–36 | Pendiente |
+| 5 | Gastos | 28–36 | **Cerrada** (2026-09-25) |
 | 6 | Reportes y balance | 30–40 | Pendiente |
 | 7 | PWA offline | 24–32 | Pendiente |
 | 8 | Puesta en producción | 20–30 | Pendiente |
 
 ## Diseño (previo a la Fase 0)
 - [x] Plan de desarrollo
-- [x] `docs/DECISIONES.md` (D-01 a D-20, pendientes P-03 a P-09)
+- [x] `docs/DECISIONES.md` (D-01 a D-22, pendientes P-03 a P-07)
 - [x] `docs/ESTADO.md`
 - [x] Diseño detallado de modelos: `core` y `academico` (aprobado)
 - [x] Diseño detallado de modelos: `cambio` (aprobado)
 - [x] Diseño detallado de modelos: `ingresos`, incluye `MontoConcepto` (aprobado; revisado por D-19 — `Aporte` sin estudiante)
-- [x] Diseño detallado de modelos: `gastos` (aprobado; G-7 y G-8 abiertas)
+- [x] Diseño detallado de modelos: `gastos` (aprobado; G-7 y G-8 resueltas en D-22 antes de construir la Fase 5)
 - [ ] Confirmar D-06 y D-07 con el administrador (P-07) — no bloquea el código, sí el flujo de captura de la Fase 3
 
 ## Fase 0 — Infraestructura — CERRADA (2026-09-22)
@@ -145,12 +145,26 @@ Regla: no se empieza una fase sin cerrar la anterior aquí.
 - **Corrección de código (ya en producción):** `Aporte.clean()` ahora valida explícitamente que `periodo` y `fondo` quedaran resueltos tras el autocompletado, y si no, muestra un mensaje claro en el formulario en vez de dejar que reviente como error de base de datos. No hizo falta migración nueva.
 - **Corrección de datos que tú tienes pendiente:** correr `seed_datos_iniciales` contra Neon `production` (con el mismo truco de `DATABASE_URL` temporal desde tu máquina que usaste para crear el superusuario de producción, D-18) — esto crea el Fondo General y completa el catálogo de bancos/formas de pago que también estaba incompleto ahí (solo tenías "Pago movil" creado a mano, y ningún banco cargado).
 
-## Fase 5 — Gastos
-- [ ] Modelos `gastos` + migraciones
-- [ ] Catálogos (fondos, categorías, productos, unidades, proveedores)
-- [ ] Formset dinámico de renglones (HTMX)
-- [ ] Subtotales, total, aprobación y anulación
-- [ ] Saldo por fondo
+## Fase 5 — Gastos — CERRADA (2026-09-25)
+- [x] Modelos `gastos` (`CategoriaGasto`, `UnidadMedida`, `Producto`, `Proveedor`, `Gasto`, `DetalleGasto`) + migración `0002` (aplicada limpio sobre Postgres/SQLite; `Fondo` ya existía desde la Fase 2)
+- [x] G-7/G-8 resueltas con Darwin antes de construir (D-22): saldo acumulado entre períodos, sin traslados entre fondos por ahora
+- [x] Catálogos con pantalla propia (lista + crear + editar), rol administrador: Categorías de gasto, Unidades de medida, Productos, Proveedores — enlazados desde Configuración
+- [x] De paso: pantalla de catálogo para Bancos (`ingresos/configuracion/bancos/`) — Darwin la pidió al notar que solo existía en `/admin/`
+- [x] `seed_datos_iniciales` ahora también carga las 8 unidades de medida (Kg, g, Litro, Unidad, Bulto, Docena, Paquete, Caja)
+- [x] Registro de gasto (`/gastos/registrar/`): cabecera (fecha, fondo, proveedor, tipo/número de documento, moneda, tasa, observación) + formset de renglones dinámico con HTMX — botón "Agregar renglón" trae una fila vacía del servidor sin recargar la página (out-of-band swap del `TOTAL_FORMS`); "Quitar" marca el renglón para borrar
+- [x] Responsable de fondo solo puede registrar en su propio fondo (`GastoForm` acota el queryset por `PerfilUsuario.fondo`, no solo por UI — el `ModelChoiceField` rechaza cualquier otro valor aunque se manipule el POST)
+- [x] `Gasto.recalcular()`: el total sale de sumar los renglones (`DetalleGasto.subtotal*`, congelados con la tasa de la cabecera al guardar cada uno), no de convertir el total aparte — evita que el total no cuadre con la suma de sus partes (G-2)
+- [x] Edición de renglones mientras el gasto está `registrado` (G-6): agregar, editar y quitar libremente; al aprobar quedan congelados (`gasto_editar` responde 403 fuera de ese estado)
+- [x] Máquina de estados `Gasto.transicionar()`: `registrado → aprobado/anulado`, `aprobado → anulado`; deja fila en `simple-history` (Gasto, DetalleGasto y Proveedor son historial)
+- [x] G-3 (segregación de funciones): quien registra un gasto no puede aprobarlo — bloqueado por defecto, con dos salidas: `Institucion.permitir_autoaprobacion` (ajustable en Configuración → Institución) o confirmar la excepción caso por caso (`autoaprobacion_confirmada`) desde la pantalla de aprobación
+- [x] Aprobar con el fondo en negativo avisa y pide confirmación explícita (`saldo_negativo_confirmado`), no bloquea — mismo criterio que la desviación de montos en `Aporte`
+- [x] `gastos/services.py::saldo_fondo()`: Σ aportes verificados − Σ gastos aprobados, por separado en Bs. y USD (no se convierten entre sí), consistente con `TasaCambio.save()` (ahora si recalcula correctamente los gastos `registrado` en cascada cuando cambia el valor de una tasa: se resalvan sus renglones y se llama `recalcular()`, no solo `save()` como en `Aporte`)
+- [x] Bandeja de aprobación (`/gastos/bandeja/`) y detalle de gasto (`/gastos/<pk>/`), con enlaces a editar/aprobar/anular según rol y estado
+- [x] Documento único por proveedor (`UniqueConstraint` condicional en `Gasto`): no se puede cargar dos veces la misma factura del mismo proveedor
+- [x] `Proveedor.rif` normalizado igual que las cédulas (mismo patrón que D-11) y único cuando no es null
+- [x] `Producto.nombre_normalizado` evita duplicados por mayúsculas/acentos (G-5), verificado con un caso real ("Tomate" vs "Tomáte")
+- [x] Validación con sandbox: `manage.py check`, `makemigrations --check --dry-run` (limpio), suite existente (`cambio`+`ingresos`, 15 tests, verde) y un script de 39 verificaciones nuevas cubriendo registro con 2 renglones, HTMX de renglón nuevo, restricción de fondo por responsable, documento duplicado, las dos confirmaciones de G-3, saldo negativo, saldo positivo real (aporte − gasto), edición bloqueada tras aprobar, anulación y los 5 catálogos nuevos
+- [ ] Pendiente de validar en producción con datos reales (concurrencia de aprobación, y que el saldo por fondo cuadre con la contabilidad real de la institución una vez haya movimiento)
 
 ## Fase 6 — Reportes y balance
 - [ ] Motor de filtros compartido

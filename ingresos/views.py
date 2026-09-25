@@ -18,11 +18,12 @@ from .forms import (
     AporteForm,
     AporteLoteEncabezadoForm,
     AporteLoteFormSet,
+    BancoForm,
     ConceptoIngresoForm,
     FormaPagoForm,
     MontoConceptoForm,
 )
-from .models import Aporte, ConceptoIngreso, FormaPago, MontoConcepto
+from .models import Aporte, Banco, ConceptoIngreso, FormaPago, MontoConcepto
 
 # Quiénes pueden registrar un aporte individual desde esta pantalla (además
 # del superusuario, que siempre pasa). El registro en lote por sección, para
@@ -362,3 +363,37 @@ def montoconcepto_eliminar(request, pk):
         monto.delete()
         messages.success(request, f"Monto «{descripcion}» eliminado.")
     return redirect("ingresos:montoconcepto_lista")
+
+
+class BancoListView(RolRequeridoMixin, ListView):
+    roles_permitidos = ROLES_CONFIGURACION
+    model = Banco
+    template_name = "ingresos/banco_lista.html"
+    context_object_name = "bancos"
+    queryset = Banco.objects.order_by("nombre")
+
+
+class BancoCreateView(RolRequeridoMixin, CreateView):
+    roles_permitidos = ROLES_CONFIGURACION
+    model = Banco
+    form_class = BancoForm
+    template_name = "ingresos/banco_form.html"
+    success_url = reverse_lazy("ingresos:banco_lista")
+
+    def form_valid(self, form):
+        respuesta = super().form_valid(form)
+        messages.success(self.request, f"Banco «{self.object}» creado.")
+        return respuesta
+
+
+class BancoUpdateView(RolRequeridoMixin, UpdateView):
+    roles_permitidos = ROLES_CONFIGURACION
+    model = Banco
+    form_class = BancoForm
+    template_name = "ingresos/banco_form.html"
+    success_url = reverse_lazy("ingresos:banco_lista")
+
+    def form_valid(self, form):
+        respuesta = super().form_valid(form)
+        messages.success(self.request, f"Banco «{self.object}» actualizado.")
+        return respuesta

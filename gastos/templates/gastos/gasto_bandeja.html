@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block titulo %}Bandeja de aprobación — Edumia{% endblock %}
+{% block titulo_topbar %}Bandeja de aprobación{% endblock %}
+{% block contenido %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+  <div>
+    <h1 class="h3 mb-1">Bandeja de aprobación</h1>
+    <p class="text-muted mb-0">Gastos registrados, a la espera de que un administrador los apruebe.</p>
+  </div>
+  <a href="{% url 'gastos:gasto_registrar' %}" class="btn btn-edumia-primary btn-sm">
+    <i class="bi bi-plus-circle"></i> Registrar gasto
+  </a>
+</div>
+
+<div class="card card-edumia">
+  {% if gastos %}
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead>
+        <tr>
+          <th>Fondo</th><th>Proveedor</th><th>Monto</th><th>Documento</th>
+          <th>Fecha</th><th>Registrado por</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for gasto in gastos %}
+        <tr>
+          <td><a href="{% url 'gastos:gasto_detalle' gasto.pk %}">{{ gasto.fondo }}</a></td>
+          <td>{{ gasto.proveedor|default:"—" }}</td>
+          <td>{{ gasto.monto }} {{ gasto.moneda }}</td>
+          <td>{{ gasto.get_tipo_documento_display }} {{ gasto.numero_documento }}</td>
+          <td>{{ gasto.fecha }}</td>
+          <td>{{ gasto.registrado_por }}</td>
+          <td class="text-end">
+            {% if puede_aprobar %}
+            <div class="d-flex gap-1 justify-content-end">
+              <a href="{% url 'gastos:gasto_aprobar' gasto.pk %}" class="btn btn-sm btn-outline-success">
+                <i class="bi bi-check-circle"></i> Aprobar
+              </a>
+              <a href="{% url 'gastos:gasto_editar' gasto.pk %}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <a href="{% url 'gastos:gasto_anular' gasto.pk %}" class="btn btn-sm btn-outline-danger">
+                <i class="bi bi-x-circle"></i> Anular
+              </a>
+            </div>
+            {% else %}
+            <span class="text-muted small">Esperando al administrador</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-inbox d-block mb-2"></i>
+    No hay gastos pendientes de aprobación.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -36,4 +36,7 @@ urlpatterns = [
         "configuracion/montos/<int:pk>/eliminar/",
         views.montoconcepto_eliminar, name="montoconcepto_eliminar",
     ),
+    path("configuracion/bancos/", views.BancoListView.as_view(), name="banco_lista"),
+    path("configuracion/bancos/nuevo/", views.BancoCreateView.as_view(), name="banco_crear"),
+    path("configuracion/bancos/<int:pk>/editar/", views.BancoUpdateView.as_view(), name="banco_editar"),
 ]

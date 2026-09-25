@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block titulo %}Bancos — Configuración{% endblock %}
+{% block titulo_topbar %}Bancos{% endblock %}
+{% block contenido %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+  <h1 class="h3 mb-0">Bancos</h1>
+  <a href="{% url 'ingresos:banco_crear' %}" class="btn btn-edumia-primary"><i class="bi bi-plus-lg"></i> Nuevo banco</a>
+</div>
+
+<div class="card card-edumia">
+  {% if bancos %}
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead>
+        <tr><th>Código</th><th>Nombre</th><th>Estado</th><th class="text-end">Acciones</th></tr>
+      </thead>
+      <tbody>
+      {% for banco in bancos %}
+        <tr>
+          <td>{{ banco.codigo }}</td>
+          <td>{{ banco.nombre }}</td>
+          <td>
+            {% if banco.activo %}
+              <span class="badge text-bg-success">Activo</span>
+            {% else %}
+              <span class="badge text-bg-secondary">Inactivo</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <a href="{% url 'ingresos:banco_editar' banco.pk %}" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-pencil"></i>
+            </a>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-bank d-block mb-2"></i>
+    No hay bancos registrados todavía.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

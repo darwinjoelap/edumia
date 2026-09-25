@@ -1,0 +1,32 @@
+<tr>
+  {{ form.id }}
+  <td style="min-width:180px;">
+    {{ form.producto }}
+    {% if form.producto.errors %}<div class="text-danger small mt-1">{% for error in form.producto.errors %}{{ error }}{% endfor %}</div>{% endif %}
+  </td>
+  <td style="min-width:160px;">
+    {{ form.descripcion }}
+    {% if form.descripcion.errors %}<div class="text-danger small mt-1">{% for error in form.descripcion.errors %}{{ error }}{% endfor %}</div>{% endif %}
+  </td>
+  <td style="max-width:110px;">
+    {{ form.cantidad }}
+    {% if form.cantidad.errors %}<div class="text-danger small mt-1">{% for error in form.cantidad.errors %}{{ error }}{% endfor %}</div>{% endif %}
+  </td>
+  <td style="min-width:110px;">
+    {{ form.unidad }}
+    {% if form.unidad.errors %}<div class="text-danger small mt-1">{% for error in form.unidad.errors %}{{ error }}{% endfor %}</div>{% endif %}
+  </td>
+  <td style="max-width:140px;">
+    {{ form.precio_unitario }}
+    {% if form.precio_unitario.errors %}<div class="text-danger small mt-1">{% for error in form.precio_unitario.errors %}{{ error }}{% endfor %}</div>{% endif %}
+  </td>
+  <td class="text-center">
+    <div class="form-check">
+      {{ form.DELETE }}
+      <label class="form-check-label small" for="{{ form.DELETE.id_for_label }}">Quitar</label>
+    </div>
+  </td>
+</tr>
+{% if form.non_field_errors %}
+<tr><td colspan="6" class="text-danger small">{% for error in form.non_field_errors %}{{ error }}{% endfor %}</td></tr>
+{% endif %}

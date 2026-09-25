@@ -81,5 +81,50 @@
       </div>
     </a>
   </div>
+  <div class="col-md-4">
+    <a href="{% url 'ingresos:banco_lista' %}" class="quick-action h-100">
+      <span class="quick-action-icon"><i class="bi bi-bank"></i></span>
+      <div>
+        <div class="fw-semibold">Bancos</div>
+        <div class="text-muted small">Catálogo para pago móvil y transferencias</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-4">
+    <a href="{% url 'gastos:categoria_lista' %}" class="quick-action h-100">
+      <span class="quick-action-icon"><i class="bi bi-tags-fill"></i></span>
+      <div>
+        <div class="fw-semibold">Categorías de gasto</div>
+        <div class="text-muted small">Para clasificar cada renglón de gasto</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-4">
+    <a href="{% url 'gastos:unidad_lista' %}" class="quick-action h-100">
+      <span class="quick-action-icon"><i class="bi bi-rulers"></i></span>
+      <div>
+        <div class="fw-semibold">Unidades de medida</div>
+        <div class="text-muted small">Kg, litro, unidad, bulto…</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-4">
+    <a href="{% url 'gastos:producto_lista' %}" class="quick-action h-100">
+      <span class="quick-action-icon"><i class="bi bi-box-seam-fill"></i></span>
+      <div>
+        <div class="fw-semibold">Productos</div>
+        <div class="text-muted small">Catálogo para los renglones de gasto</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-4">
+    <a href="{% url 'gastos:proveedor_lista' %}" class="quick-action h-100">
+      <span class="quick-action-icon"><i class="bi bi-truck"></i></span>
+      <div>
+        <div class="fw-semibold">Proveedores</div>
+        <div class="text-muted small">A quién se le compra o se le paga</div>
+      </div>
+    </a>
+  </div>
 </div>
 {% endblock %}

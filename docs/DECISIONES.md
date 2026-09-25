@@ -145,6 +145,16 @@ Formato: una entrada por decisión. Estado: **Cerrada** o **Pendiente**.
 - El recibo público (`/recibos/verificar/<uuid>/`) usa el mismo diseño y también puede descargarse como imagen: quien recibe el enlace del QR puede guardarlo, no solo verlo.
 - Nuevas dependencias en `requirements.txt`: `qrcode` y `pillow` (esta última solo la usa `qrcode` para generar el PNG).
 
+## D-22 — Gastos: saldo acumulado entre períodos, sin traslados entre fondos (Fase 5)
+- Estado: Cerrada (2026-09-25)
+- Origen: `docs/MODELOS_gastos.md` dejaba G-7 y G-8 abiertas; se resolvieron con Darwin antes de construir la Fase 5 (resuelve también P-08 y P-09 de la tabla de pendientes).
+- **G-7 (saldo entre períodos):** el saldo de un fondo es acumulado — lo que sobra en un período escolar sigue disponible en el siguiente, no se reinicia al cerrar el período. `gastos/services.py::saldo_fondo()` ya suma sin filtrar por período (salvo que se pida explícitamente con `hasta=`); los reportes por período (Fase 6) mostrarán "saldo anterior + ingresos − gastos" sobre esa misma base.
+- **G-8 (traslados entre fondos):** no se implementa por ahora. No existe modelo `TransferenciaFondo`; si más adelante hace falta (ej. "General presta al Comedor"), se agrega como una fase aparte sin tocar lo ya construido.
+- **G-1 a G-6** (ya aprobadas en el diseño) quedaron implementadas tal cual: `Fondo.responsable` no existe (la relación vive en `PerfilUsuario.fondo`); `Gasto` tiene una sola moneda y el total sale de sumar los renglones (`Gasto.recalcular()`), no de convertir el total; segregación de funciones al aprobar (`Gasto.transicionar()` bloquea que quien registró también apruebe, salvo `Institucion.permitir_autoaprobacion` o confirmación explícita por gasto); `Aporte.fondo`/`Gasto.fondo` nunca quedan nulos; `Producto.nombre_normalizado` evita duplicados por mayúsculas/acentos; los renglones de un gasto `registrado` se pueden agregar/editar/quitar libremente, y quedan congelados al aprobar.
+- Aprobar un gasto que deja el saldo del fondo en negativo avisa y pide confirmación explícita (`saldo_negativo_confirmado`), no bloquea — mismo criterio que la desviación de montos en `Aporte`.
+- El formset de renglones (`DetalleGastoFormSet`) usa HTMX para agregar filas sin recargar la página: cada clic en "Agregar renglón" trae una fila vacía más del servidor y actualiza el contador `TOTAL_FORMS` del formulario con un *out-of-band swap*.
+- De paso se agregó una pantalla de catálogo para Bancos (`/ingresos/configuracion/bancos/`, ya existía el modelo y el admin de Django, pero no una pantalla propia de Edumia) — no estaba en el alcance original de esta fase, pero Darwin la pidió al notar que no tenía dónde agregar bancos fuera de `/admin/`.
+
 ---
 
 ## Pendientes (sin respuesta aún)
@@ -156,5 +166,3 @@ Formato: una entrada por decisión. Estado: **Cerrada** o **Pendiente**.
 | P-05 | ¿Cuántos alumnos y secciones hay? | Pantalla de registro en lote vs. búsqueda | Fase 3 |
 | P-06 | ¿Android, iPhone o mezcla en los docentes? | Background Sync (no existe en iOS) | Fase 7 |
 | P-07 | Confirmar con el administrador: D-06, D-07 y pago parcial (D-13) | Modelo `Aporte` / `MontoConcepto` | Fase 1 (no bloquea el modelo; sí el flujo de captura de Fase 3) |
-| P-08 | ¿El saldo sobrante de un fondo pasa al nuevo año escolar o se rinde y reinicia? (G-7; propuesta: acumulado) | `saldo_fondo`, reportes | Fase 5 |
-| P-09 | ¿Se necesitan traslados entre fondos? (G-8; depende de P-04) | Modelo `TransferenciaFondo` | Fase 5 |

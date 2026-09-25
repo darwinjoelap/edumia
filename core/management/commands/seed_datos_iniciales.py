@@ -5,7 +5,7 @@ from django.db import transaction
 
 from academico.models import Grado
 from core.models import Institucion, PeriodoEscolar
-from gastos.models import Fondo
+from gastos.models import Fondo, UnidadMedida
 from ingresos.models import Banco, FormaPago
 
 # Bancos venezolanos más comunes (código SUDEBAN). Lista de arranque: si algún
@@ -67,13 +67,26 @@ GRADOS = [
     ("5to Año", Grado.Nivel.MEDIA, 14),
 ]
 
+# Unidades de medida (docs/MODELOS_gastos.md, Fase 5). nombre, abreviatura
+UNIDADES_MEDIDA = [
+    ("Kilogramo", "Kg"),
+    ("Gramo", "g"),
+    ("Litro", "Litro"),
+    ("Unidad", "Unidad"),
+    ("Bulto", "Bulto"),
+    ("Docena", "Docena"),
+    ("Paquete", "Paquete"),
+    ("Caja", "Caja"),
+]
+
 
 class Command(BaseCommand):
     help = (
         "Carga los datos iniciales de Edumia: Institución (valores de ejemplo, "
         "editables luego en el admin), Período escolar activo, el listado "
-        "estándar de Grados (Inicial, Primaria, Media), el Fondo General y, "
-        "desde la Fase 3, el catálogo de Bancos y Formas de pago. "
+        "estándar de Grados (Inicial, Primaria, Media), el Fondo General, el "
+        "catálogo de Bancos y Formas de pago (Fase 3) y, desde la Fase 5, las "
+        "Unidades de medida de gastos. "
         "Es idempotente: se puede volver a ejecutar sin duplicar datos."
     )
 
@@ -85,6 +98,7 @@ class Command(BaseCommand):
             self._crear_fondo_general()
             self._crear_bancos()
             self._crear_formas_pago()
+            self._crear_unidades_medida()
 
     def _crear_institucion(self):
         inst = Institucion.obtener()
@@ -170,4 +184,17 @@ class Command(BaseCommand):
         existentes = len(FORMAS_PAGO) - creadas
         self.stdout.write(self.style.SUCCESS(
             f"Formas de pago: {creadas} creadas, {existentes} ya existían."
+        ))
+
+    def _crear_unidades_medida(self):
+        creadas = 0
+        for nombre, abreviatura in UNIDADES_MEDIDA:
+            _, created = UnidadMedida.objects.get_or_create(
+                nombre=nombre, defaults={"abreviatura": abreviatura},
+            )
+            if created:
+                creadas += 1
+        existentes = len(UNIDADES_MEDIDA) - creadas
+        self.stdout.write(self.style.SUCCESS(
+            f"Unidades de medida: {creadas} creadas, {existentes} ya existían."
         ))

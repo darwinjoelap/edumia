@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block titulo %}Gasto #{{ gasto.pk }} — Edumia{% endblock %}
+{% block titulo_topbar %}Gasto #{{ gasto.pk }}{% endblock %}
+{% block contenido %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+  <div>
+    <h1 class="h3 mb-1">Gasto #{{ gasto.pk }}</h1>
+    <p class="text-muted mb-0">
+      {{ gasto.fondo }} ·
+      {% if gasto.estado == "aprobado" %}
+        <span class="badge text-bg-success">{{ gasto.get_estado_display }}</span>
+      {% elif gasto.estado == "anulado" %}
+        <span class="badge text-bg-danger">{{ gasto.get_estado_display }}</span>
+      {% else %}
+        <span class="badge text-bg-secondary">{{ gasto.get_estado_display }}</span>
+      {% endif %}
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    {% if puede_editar %}
+      <a href="{% url 'gastos:gasto_editar' gasto.pk %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i> Editar</a>
+    {% endif %}
+    {% if puede_aprobar and gasto.estado == "registrado" %}
+      <a href="{% url 'gastos:gasto_aprobar' gasto.pk %}" class="btn btn-outline-success btn-sm"><i class="bi bi-check-circle"></i> Aprobar</a>
+    {% endif %}
+    {% if puede_aprobar and gasto.estado != "anulado" %}
+      <a href="{% url 'gastos:gasto_anular' gasto.pk %}" class="btn btn-outline-danger btn-sm"><i class="bi bi-x-circle"></i> Anular</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="card card-edumia p-3"><div class="text-muted small">Proveedor</div><div class="fw-semibold">{{ gasto.proveedor|default:"—" }}</div></div></div>
+  <div class="col-md-3"><div class="card card-edumia p-3"><div class="text-muted small">Documento</div><div class="fw-semibold">{{ gasto.get_tipo_documento_display }} {{ gasto.numero_documento }}</div></div></div>
+  <div class="col-md-3"><div class="card card-edumia p-3"><div class="text-muted small">Fecha</div><div class="fw-semibold">{{ gasto.fecha }}</div></div></div>
+  <div class="col-md-3"><div class="card card-edumia p-3"><div class="text-muted small">Total</div><div class="fw-semibold">{{ gasto.monto }} {{ gasto.moneda }}</div></div></div>
+</div>
+
+{% if gasto.observacion %}
+<div class="alert alert-secondary">{{ gasto.observacion }}</div>
+{% endif %}
+{% if gasto.estado == "anulado" %}
+<div class="alert alert-danger">
+  Anulado por {{ gasto.anulado_por }} el {{ gasto.fecha_anulacion }}.<br>
+  Motivo: {{ gasto.motivo_anulacion }}
+</div>
+{% endif %}
+
+<div class="card card-edumia mb-3">
+  <div class="card-body p-4">
+    <h2 class="h6 text-uppercase text-muted mb-3">Renglones</h2>
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead><tr><th>Producto</th><th>Cantidad</th><th>Unidad</th><th>Precio unitario</th><th class="text-end">Subtotal</th></tr></thead>
+        <tbody>
+        {% for renglon in renglones %}
+          <tr>
+            <td>{{ renglon.producto|default:renglon.descripcion }}</td>
+            <td>{{ renglon.cantidad }}</td>
+            <td>{{ renglon.unidad.abreviatura }}</td>
+            <td>{{ renglon.precio_unitario }}</td>
+            <td class="text-end">{{ renglon.subtotal }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card card-edumia">
+  <div class="card-body p-4">
+    <h2 class="h6 text-uppercase text-muted mb-3">Saldo del fondo «{{ gasto.fondo }}»</h2>
+    <p class="mb-0">{{ saldo_ves }} Bs. · {{ saldo_usd }} $</p>
+  </div>
+</div>
+{% endblock %}

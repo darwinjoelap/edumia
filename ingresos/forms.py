@@ -258,3 +258,19 @@ class AporteLoteFilaForm(forms.Form):
 
 
 AporteLoteFormSet = forms.formset_factory(AporteLoteFilaForm, extra=0)
+
+
+class BancoForm(forms.ModelForm):
+    class Meta:
+        model = Banco
+        fields = ["codigo", "nombre", "activo"]
+        labels = {"codigo": "Código SUDEBAN"}
+        help_texts = {"codigo": "Ej: 0102"}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for nombre, field in self.fields.items():
+            if nombre == "activo":
+                field.widget.attrs.setdefault("class", "form-check-input")
+                continue
+            field.widget.attrs.setdefault("class", "form-control")

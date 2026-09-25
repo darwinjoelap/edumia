@@ -65,6 +65,16 @@
         </a>
         {% endif %}
 
+        {% if user.is_superuser or user.perfilusuario.rol == "administrador" or user.perfilusuario.rol == "responsable_fondo" %}
+        <div class="edumia-nav-heading">Gastos</div>
+        <a class="nav-link {% if request.resolver_match.url_name == 'gasto_registrar' %}active{% endif %}" href="{% url 'gastos:gasto_registrar' %}">
+          <i class="bi bi-cart-plus-fill"></i> Registrar gasto
+        </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'gasto_bandeja' %}active{% endif %}" href="{% url 'gastos:gasto_bandeja' %}">
+          <i class="bi bi-inbox-fill"></i> Bandeja de aprobación
+        </a>
+        {% endif %}
+
         {% if user.is_superuser or user.perfilusuario.rol == "administrador" %}
         <div class="edumia-nav-heading">Administración</div>
         {% if user.is_superuser or user.perfilusuario.rol == "administrador" %}
@@ -154,6 +164,7 @@
 {% endif %}
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.12/dist/htmx.min.js"></script>
 <script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {

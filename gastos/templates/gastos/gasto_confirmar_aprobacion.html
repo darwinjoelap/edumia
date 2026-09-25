@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block titulo %}Aprobar gasto — Edumia{% endblock %}
+{% block titulo_topbar %}Aprobar gasto{% endblock %}
+{% block contenido %}
+
+<h1 class="h3 mb-4">Aprobar gasto #{{ gasto.pk }}</h1>
+
+<div class="card card-edumia" style="max-width: 620px;">
+  <div class="card-body p-4">
+    <p class="mb-1"><strong>{{ gasto.fondo }}</strong> — {{ gasto.monto }} {{ gasto.moneda }}</p>
+    <p class="text-muted mb-3">
+      {{ gasto.proveedor|default:"Sin proveedor" }} ·
+      {{ gasto.get_tipo_documento_display }} {{ gasto.numero_documento }} · {{ gasto.fecha }} ·
+      registrado por {{ gasto.registrado_por }}
+    </p>
+
+    <div class="alert alert-secondary">
+      Saldo del fondo si se aprueba este gasto:
+      <strong>{{ saldo_ves_proyectado }} Bs. · {{ saldo_usd_proyectado }} $</strong>
+      {% if saldo_ves_proyectado < 0 or saldo_usd_proyectado < 0 %}
+        <div class="text-danger mt-1">El fondo queda en negativo.</div>
+      {% endif %}
+    </div>
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      {% if mismo_registrador %}
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="autoaprobacion_confirmada" name="autoaprobacion_confirmada">
+          <label class="form-check-label" for="autoaprobacion_confirmada">
+            Confirmo que quiero aprobar un gasto que yo mismo registré (G-3).
+          </label>
+        </div>
+      {% endif %}
+
+      {% if saldo_ves_proyectado < 0 or saldo_usd_proyectado < 0 %}
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="saldo_negativo_confirmado" name="saldo_negativo_confirmado">
+          <label class="form-check-label" for="saldo_negativo_confirmado">
+            Confirmo que quiero aprobar este gasto aunque el fondo quede en negativo.
+          </label>
+        </div>
+      {% endif %}
+
+      <button type="submit" class="btn btn-edumia-primary">Aprobar gasto</button>
+      <a href="{% url 'gastos:gasto_bandeja' %}" class="btn btn-outline-secondary">Cancelar</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block titulo %}Productos — Configuración{% endblock %}
+{% block titulo_topbar %}Productos{% endblock %}
+{% block contenido %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+  <h1 class="h3 mb-0">Productos</h1>
+  <a href="{% url 'gastos:producto_crear' %}" class="btn btn-edumia-primary"><i class="bi bi-plus-lg"></i> Nuevo producto</a>
+</div>
+
+<div class="card card-edumia">
+  {% if productos %}
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead><tr><th>Nombre</th><th>Categoría</th><th>Unidad</th><th>Estado</th><th class="text-end">Acciones</th></tr></thead>
+      <tbody>
+      {% for producto in productos %}
+        <tr>
+          <td>{{ producto.nombre }}</td>
+          <td>{{ producto.categoria }}</td>
+          <td>{{ producto.unidad_default.abreviatura }}</td>
+          <td>
+            {% if producto.activo %}<span class="badge text-bg-success">Activo</span>{% else %}<span class="badge text-bg-secondary">Inactivo</span>{% endif %}
+          </td>
+          <td class="text-end">
+            <a href="{% url 'gastos:producto_editar' producto.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><i class="bi bi-box-seam d-block mb-2"></i>No hay productos registrados todavía.</div>
+  {% endif %}
+</div>
+{% endblock %}

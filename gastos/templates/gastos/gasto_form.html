@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block titulo %}{% if gasto %}Editar gasto{% else %}Registrar gasto{% endif %} — Edumia{% endblock %}
+{% block titulo_topbar %}{% if gasto %}Editar gasto #{{ gasto.pk }}{% else %}Registrar gasto{% endif %}{% endblock %}
+{% block contenido %}
+
+<div class="mb-4">
+  <h1 class="h3 mb-1">{% if gasto %}Editar gasto #{{ gasto.pk }}{% else %}Registrar gasto{% endif %}</h1>
+  <p class="text-muted mb-0">
+    Queda en estado «registrado», pendiente de que un administrador lo apruebe desde la
+    <a href="{% url 'gastos:gasto_bandeja' %}">bandeja de aprobación</a>.
+  </p>
+</div>
+
+{% if form.non_field_errors %}
+  <div class="alert alert-danger">
+    {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+  </div>
+{% endif %}
+
+<form method="post" novalidate>
+  {% csrf_token %}
+
+  <div class="card card-edumia mb-3">
+    <div class="card-body p-4">
+      <h2 class="h6 text-uppercase text-muted mb-3">Documento</h2>
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.fecha.id_for_label }}">{{ form.fecha.label }}</label>
+          {{ form.fecha }}
+          {% if form.fecha.errors %}<div class="text-danger small mt-1">{% for error in form.fecha.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.fondo.id_for_label }}">{{ form.fondo.label }}</label>
+          {{ form.fondo }}
+          {% if form.fondo.errors %}<div class="text-danger small mt-1">{% for error in form.fondo.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.proveedor.id_for_label }}">{{ form.proveedor.label }}</label>
+          {{ form.proveedor }}
+          {% if form.proveedor.errors %}<div class="text-danger small mt-1">{% for error in form.proveedor.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.tipo_documento.id_for_label }}">{{ form.tipo_documento.label }}</label>
+          {{ form.tipo_documento }}
+          {% if form.tipo_documento.errors %}<div class="text-danger small mt-1">{% for error in form.tipo_documento.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.numero_documento.id_for_label }}">{{ form.numero_documento.label }}</label>
+          {{ form.numero_documento }}
+          {% if form.numero_documento.errors %}<div class="text-danger small mt-1">{% for error in form.numero_documento.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.moneda.id_for_label }}">{{ form.moneda.label }}</label>
+          {{ form.moneda }}
+          {% if form.moneda.errors %}<div class="text-danger small mt-1">{% for error in form.moneda.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.tasa.id_for_label }}">{{ form.tasa.label }}</label>
+          {{ form.tasa }}
+          {% if form.tasa.errors %}<div class="text-danger small mt-1">{% for error in form.tasa.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+      </div>
+      <div class="mb-0">
+        <label class="form-label fw-semibold" for="{{ form.observacion.id_for_label }}">{{ form.observacion.label }}</label>
+        {{ form.observacion }}
+        <div class="form-text">{{ form.observacion.help_text }}</div>
+        {% if form.observacion.errors %}<div class="text-danger small mt-1">{% for error in form.observacion.errors %}{{ error }}{% endfor %}</div>{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="card card-edumia mb-3">
+    <div class="card-body p-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h6 text-uppercase text-muted mb-0">Renglones</h2>
+        <button type="button" class="btn btn-sm btn-outline-secondary"
+                hx-get="{% url 'gastos:gasto_renglon_nuevo' %}"
+                hx-vals='js:{total: document.getElementById("id_renglones-TOTAL_FORMS").value}'
+                hx-target="#renglones-cuerpo" hx-swap="beforeend">
+          <i class="bi bi-plus-lg"></i> Agregar renglón
+        </button>
+      </div>
+
+      {{ formset.management_form }}
+      {% if formset.non_form_errors %}
+        <div class="alert alert-danger">{% for error in formset.non_form_errors %}<div>{{ error }}</div>{% endfor %}</div>
+      {% endif %}
+
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Producto</th><th>Descripción</th><th>Cantidad</th><th>Unidad</th><th>Precio unitario</th><th class="text-center">Quitar</th>
+            </tr>
+          </thead>
+          <tbody id="renglones-cuerpo">
+            {% for renglon in formset %}
+              {% include "gastos/_renglon_fila.html" with form=renglon %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="text-muted small mb-0 mt-2">Si el producto no está en el catálogo, deja «Producto» vacío y escribe una descripción.</p>
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-edumia-primary">Guardar</button>
+  <a href="{% url 'gastos:gasto_bandeja' %}" class="btn btn-outline-secondary">Cancelar</a>
+</form>
+{% endblock %}

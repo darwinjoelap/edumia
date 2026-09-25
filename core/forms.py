@@ -9,14 +9,18 @@ from .models import Institucion, PeriodoEscolar
 class InstitucionForm(forms.ModelForm):
     class Meta:
         model = Institucion
-        fields = ["nombre", "rif", "direccion", "telefono", "email"]
+        fields = ["nombre", "rif", "direccion", "telefono", "email", "permitir_autoaprobacion"]
         widgets = {
             "direccion": forms.Textarea(attrs={"rows": 3}),
         }
+        labels = {"permitir_autoaprobacion": "Permitir que un administrador apruebe sus propios gastos"}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field in self.fields.values():
+        for nombre, field in self.fields.items():
+            if nombre == "permitir_autoaprobacion":
+                field.widget.attrs.setdefault("class", "form-check-input")
+                continue
             field.widget.attrs.setdefault("class", "form-control")
 
 

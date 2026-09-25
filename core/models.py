@@ -17,6 +17,12 @@ class Institucion(models.Model):
     direccion = models.TextField()
     telefono = models.CharField(max_length=30, blank=True)
     email = models.EmailField(blank=True)
+    permitir_autoaprobacion = models.BooleanField(
+        default=False,
+        help_text="G-3 (Fase 5): si está apagado (por defecto), quien registra un gasto no puede "
+        "aprobarlo — hace falta otro administrador, o confirmar explícitamente la excepción caso "
+        "por caso. Actívalo solo si la institución tiene un único administrador.",
+    )
 
     class Meta:
         verbose_name = "institución"

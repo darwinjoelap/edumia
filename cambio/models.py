@@ -50,9 +50,7 @@ class TasaCambio(models.Model):
         return f"{self.fecha} · {self.get_fuente_display()}: {self.valor}"
 
     def tiene_transacciones(self):
-        """True si algún Aporte (Fase 3) o Gasto (Fase 5, cuando exista) ya
-        quedó congelado con esta tasa. `getattr` porque Gasto todavía no
-        existe y no rompe cuando llegue si el related_name es otro."""
+        """True si algún Aporte o Gasto ya quedó congelado con esta tasa."""
         if hasattr(self, "aportes") and self.aportes.exists():
             return True
         if hasattr(self, "gastos") and self.gastos.exists():
@@ -61,12 +59,15 @@ class TasaCambio(models.Model):
 
     def _transacciones_recalculables(self):
         """Transacciones que SÍ se recalculan si `valor` cambia: las que no
-        están congeladas todavía (D-09 protege verificado/anulado)."""
+        están congeladas todavía (D-09 protege verificado/anulado en Aporte,
+        y aprobado/anulado en Gasto)."""
         from ingresos.models import Aporte
 
         qs = [self.aportes.filter(estado__in=[Aporte.Estado.REGISTRADO, Aporte.Estado.OBSERVADO])]
         if hasattr(self, "gastos"):
-            qs.append(self.gastos.all())  # cuando exista Gasto (Fase 5), se ajusta el filtro de estado
+            from gastos.models import Gasto
+
+            qs.append(self.gastos.filter(estado=Gasto.Estado.REGISTRADO))
         return qs
 
     def save(self, *args, **kwargs):
@@ -75,7 +76,15 @@ class TasaCambio(models.Model):
         if valor_cambio:
             for conjunto in self._transacciones_recalculables():
                 for transaccion in conjunto:
-                    transaccion.save()  # dispara calcular_montos() con el nuevo valor
+                    if hasattr(transaccion, "recalcular"):
+                        # Gasto: el total sale de sumar los renglones (no de
+                        # calcular_montos()), así que hay que recongelar cada
+                        # renglón con la tasa nueva antes de resumar.
+                        for renglon in transaccion.renglones.all():
+                            renglon.save()
+                        transaccion.recalcular()
+                    else:
+                        transaccion.save()  # Aporte: dispara calcular_montos() con el nuevo valor
         self._valor_original = self.valor
 
 

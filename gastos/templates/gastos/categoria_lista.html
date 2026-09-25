@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block titulo %}Categorías de gasto — Configuración{% endblock %}
+{% block titulo_topbar %}Categorías de gasto{% endblock %}
+{% block contenido %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+  <h1 class="h3 mb-0">Categorías de gasto</h1>
+  <a href="{% url 'gastos:categoria_crear' %}" class="btn btn-edumia-primary"><i class="bi bi-plus-lg"></i> Nueva categoría</a>
+</div>
+
+<div class="card card-edumia">
+  {% if categorias %}
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead><tr><th>Nombre</th><th>Fondo</th><th>Estado</th><th class="text-end">Acciones</th></tr></thead>
+      <tbody>
+      {% for categoria in categorias %}
+        <tr>
+          <td>{{ categoria.nombre }}</td>
+          <td>{{ categoria.fondo|default:"Cualquiera" }}</td>
+          <td>
+            {% if categoria.activo %}<span class="badge text-bg-success">Activa</span>{% else %}<span class="badge text-bg-secondary">Inactiva</span>{% endif %}
+          </td>
+          <td class="text-end">
+            <a href="{% url 'gastos:categoria_editar' categoria.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><i class="bi bi-tags d-block mb-2"></i>No hay categorías de gasto registradas todavía.</div>
+  {% endif %}
+</div>
+{% endblock %}
