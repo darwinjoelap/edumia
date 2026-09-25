@@ -189,6 +189,17 @@ Formato: una entrada por decisión. Estado: **Cerrada** o **Pendiente**.
 - Validado en sandbox con un caso que reproduce los números exactos de la foto de Darwin (Bs. 622,321.00 de total de ingresos) y extrayendo el texto del PDF generado (`pypdf`) para confirmar que trae el nombre de la institución, el título, los conceptos de ingreso, las columnas por fondo y los productos/descripciones — 18 verificaciones, todas en verde. También se renderizó a imagen (`pdftoppm`) para revisión visual antes de entregarlo.
 - Sigue pendiente (no se hizo en este lote, ver `docs/ESTADO.md`): exportar a PDF los otros tres reportes de la Fase 6 (Ingresos por estudiante, Gastos por categoría, Balance) — Darwin pidió "los reportes" en plural, pero el ejemplo concreto que mandó era este documento de gastos, así que se priorizó ese primero.
 
+## D-26 — Fase 6: PDF para los otros tres reportes + índices dedicados
+- Estado: Cerrada (2026-09-25)
+- Cierra lo que había quedado pendiente en D-24/D-25. Se agregó exportación a PDF (botón junto al de Excel) a los tres reportes que solo la tenían en pantalla:
+  - **Ingresos por estudiante**: mismo PDF genérico (`reportes/pdf.py::construir_tabla_pdf()`, nueva función reutilizable) con la tabla y el total.
+  - **Gastos por categoría/producto**: igual, con `construir_tabla_pdf()`.
+  - **Balance por fondo**: PDF propio (`construir_balance_pdf()`) con el saldo de cada fondo y la tabla de evolución mensual (los mismos datos del gráfico Chart.js, aquí en tabla para que se pueda imprimir — no se intentó incrustar el gráfico como imagen, hubiera hecho falta una librería de gráficos server-side aparte).
+  - La Relación de gastos institucionales (D-25) ya tenía su propio PDF; ahora comparte el encabezado institucional (`_encabezado_institucional()`) con los otros tres, refactorizado a una función común.
+- **Revisión de índices** (pendiente que quedaba de D-24): se agregaron dos índices compuestos que antes no existían y que los reportes (y `saldo_fondo()`, ya en uso desde la Fase 5) consultan directamente: `Aporte` → `(fondo, estado, fecha_pago)`; `Gasto` → `(fondo, estado, fecha)`. Migraciones `ingresos/migrations/0003_...` y `gastos/migrations/0003_...`, solo agregan índice — no hay dato que migrar ni riesgo de romper algo existente.
+- Validado en sandbox: `makemigrations --check --dry-run` limpio tras generar las dos migraciones nuevas, `migrate` aplicado sin errores, la suite existente (15 tests) sigue en verde, y un script de 18 verificaciones nuevas — los tres PDF nuevos (status, content-type, firma `%PDF`, contenido extraído con `pypdf` confirmando institución/datos/total) y que las pantallas normales (sin `?formato=`) sigan funcionando igual que antes.
+- Con esto, los **cuatro reportes de la Fase 6 tienen tanto Excel como PDF**. Sigue pendiente, sin marcar por Darwin como prioritario: los reportes fuera de los cuatro elegidos en D-24 (se agregan reutilizando el mismo motor de filtros y los mismos helpers de PDF).
+
 ---
 
 ## Pendientes (sin respuesta aún)

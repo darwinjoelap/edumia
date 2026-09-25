@@ -260,6 +260,9 @@ class Aporte(MontoBimonedaMixin, models.Model):
             models.Index(fields=["cedula_titular"]),
             models.Index(fields=["telefono_emisor"]),
             models.Index(fields=["referencia"]),
+            # Fase 6: saldo_fondo() y los reportes filtran justo por esta
+            # combinación (fondo + estado=verificado + rango de fecha_pago).
+            models.Index(fields=["fondo", "estado", "fecha_pago"]),
         ]
         ordering = ["-creado_en"]
 

@@ -20,7 +20,7 @@ Regla: no se empieza una fase sin cerrar la anterior aquí.
 
 ## Diseño (previo a la Fase 0)
 - [x] Plan de desarrollo
-- [x] `docs/DECISIONES.md` (D-01 a D-25, pendientes P-03 a P-07)
+- [x] `docs/DECISIONES.md` (D-01 a D-26, pendientes P-03 a P-07)
 - [x] `docs/ESTADO.md`
 - [x] Diseño detallado de modelos: `core` y `academico` (aprobado)
 - [x] Diseño detallado de modelos: `cambio` (aprobado)
@@ -178,7 +178,10 @@ Regla: no se empieza una fase sin cerrar la anterior aquí.
 - [x] Acceso restringido a los mismos roles que ya veían el balance (`administrador`, `responsable_fondo`, `director`, `auditor`); nueva sección "Reportes" en el menú lateral y acceso rápido en el dashboard
 - [x] Validado en sandbox: `manage.py check`, `makemigrations --check --dry-run` (sin cambios), la suite existente (`cambio`+`ingresos`, 15 tests) sigue en verde, y un script de 25 verificaciones nuevas con el `Client` de pruebas — los cuatro reportes y sus filtros, exportación a Excel (content-type correcto), balance real del dashboard, bloqueo de fondo para `responsable_fondo` (no se puede forzar otro fondo por la URL), y 403 para el docente
 - [x] **Relación de gastos institucionales en PDF** (D-25, pedido con foto de ejemplo del documento en papel): `/reportes/gastos/relacion-pdf/` — encabezado con el nombre de la institución (y logo si existe), tabla de ingresos por concepto con total, y egresos desglosados en una columna por fondo (hasta 3 por fila). Se agregó `reportlab==5.0.1` a `requirements.txt` (wheel puro Python, sin binarios que compilar en Windows). Formato de números `1,234.56` a propósito, igual al documento original de la institución. Validado con un caso que reproduce los montos exactos de la foto de Darwin y extrayendo el texto del PDF (`pypdf`) para confirmar el contenido — 18 verificaciones en verde, más revisión visual renderizando a imagen.
-- [ ] **Pendiente, fuera de este primer lote** (D-24/D-25): los demás reportes que Darwin no marcó como prioritarios ahora (se agregan cuando haga falta, reutilizando el mismo motor de filtros); PDF para los otros tres reportes (Ingresos por estudiante, Gastos por categoría, Balance) — por ahora solo tienen Excel; una revisión de índices/N+1 dedicada más allá de las consultas ya agregadas con `.values()/.annotate()`
+- [x] **PDF para los otros tres reportes** (D-26): Ingresos por estudiante, Gastos por categoría y Balance por fondo ahora también tienen botón "Exportar a PDF" (mismo encabezado institucional, reutilizando `construir_tabla_pdf()`/`construir_balance_pdf()` en `reportes/pdf.py`). El PDF de Balance incluye la evolución mensual en tabla (el gráfico en sí queda solo en pantalla, con Chart.js).
+- [x] **Índices dedicados** (D-26): `Aporte` → `(fondo, estado, fecha_pago)`, `Gasto` → `(fondo, estado, fecha)` — cubren exactamente el patrón de consulta de `saldo_fondo()` y de los reportes. Migraciones `ingresos/migrations/0003_...` y `gastos/migrations/0003_...`, solo agregan índice.
+- [x] Validado en sandbox: `makemigrations --check` limpio, `migrate` aplicado, suite existente en verde, 18 verificaciones nuevas (los tres PDF nuevos con contenido confirmado vía `pypdf`, y que las pantallas normales sigan funcionando)
+- [ ] **Pendiente, fuera de este lote**: los reportes fuera de los cuatro que Darwin priorizó (D-24) — se agregan cuando haga falta, reutilizando el motor de filtros y los helpers de PDF ya construidos
 - [ ] Pendiente de validar en el navegador contra Neon (este entorno solo prueba contra SQLite, mismo patrón que las fases anteriores) — en particular el gráfico de Chart.js y la exportación a Excel abriendo el archivo descargado
 
 ## Fase 7 — PWA offline

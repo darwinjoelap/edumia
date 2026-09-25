@@ -212,6 +212,9 @@ class Gasto(MontoBimonedaMixin, models.Model):
             models.Index(fields=["periodo", "estado"]),
             models.Index(fields=["proveedor", "fecha"]),
             models.Index(fields=["registrado_por", "estado"]),
+            # Fase 6: saldo_fondo() y los reportes filtran justo por esta
+            # combinación (fondo + estado=aprobado + rango de fecha).
+            models.Index(fields=["fondo", "estado", "fecha"]),
         ]
         ordering = ["-fecha", "-creado_en"]
 

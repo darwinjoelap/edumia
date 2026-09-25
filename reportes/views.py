@@ -45,6 +45,16 @@ def _exportar_xlsx(nombre_archivo, encabezados, filas):
     return respuesta
 
 
+def _exportar_pdf(buffer, nombre_archivo):
+    respuesta = HttpResponse(buffer.getvalue(), content_type="application/pdf")
+    respuesta["Content-Disposition"] = f'attachment; filename="{nombre_archivo}"'
+    return respuesta
+
+
+def _institucion_y_periodo():
+    return Institucion.obtener(), PeriodoEscolar.objects.filter(activo=True).first()
+
+
 @login_required
 @requiere_rol(*ROLES_REPORTES)
 def inicio(request):
@@ -83,6 +93,27 @@ def ingresos_estudiantes(request):
         ]
         return _exportar_xlsx(f"ingresos_{desde}_{hasta}.xlsx", encabezados, cuerpo)
 
+    if request.GET.get("formato") == "pdf":
+        institucion, periodo = _institucion_y_periodo()
+        encabezados = ["Estudiante", "Cédula", "Grado", "Sección", "Total Bs.", "Total $", "# aportes"]
+        cuerpo = [
+            [
+                f"{f['inscripcion__estudiante__apellidos']} {f['inscripcion__estudiante__nombres']}",
+                f["inscripcion__estudiante__cedula_escolar"] or "—",
+                f["inscripcion__seccion__grado__nombre"],
+                f["inscripcion__seccion__nombre"],
+                pdf._fmt(f["total_ves"]),
+                pdf._fmt(f["total_usd"]),
+                f["cantidad"],
+            ]
+            for f in filas
+        ]
+        fila_total = ["TOTAL", "", "", "", pdf._fmt(totales["total_ves"]), pdf._fmt(totales["total_usd"]), totales["cantidad"] or 0]
+        buffer = pdf.construir_tabla_pdf(
+            institucion, periodo, "Ingresos por estudiante", desde, hasta, encabezados, cuerpo, fila_total,
+        )
+        return _exportar_pdf(buffer, f"ingresos_{desde}_{hasta}.pdf")
+
     return render(request, "reportes/ingresos_estudiantes.html", {
         "form": form, "filas": filas, "totales": totales, "desde": desde, "hasta": hasta,
     })
@@ -120,6 +151,25 @@ def gastos_categorias(request):
         ]
         return _exportar_xlsx(f"gastos_{desde}_{hasta}.xlsx", encabezados, cuerpo)
 
+    if request.GET.get("formato") == "pdf":
+        institucion, periodo = _institucion_y_periodo()
+        encabezados = ["Categoría", "Producto", "Cantidad", "Total Bs.", "Total $"]
+        cuerpo = [
+            [
+                f["producto__categoria__nombre"] or "Sin categoría",
+                f["producto__nombre"] or "(descripción libre)",
+                str(f["cantidad"] or 0),
+                pdf._fmt(f["total_ves"]),
+                pdf._fmt(f["total_usd"]),
+            ]
+            for f in filas
+        ]
+        fila_total = ["TOTAL", "", "", pdf._fmt(totales["total_ves"]), pdf._fmt(totales["total_usd"])]
+        buffer = pdf.construir_tabla_pdf(
+            institucion, periodo, "Gastos por categoría y producto", desde, hasta, encabezados, cuerpo, fila_total,
+        )
+        return _exportar_pdf(buffer, f"gastos_{desde}_{hasta}.pdf")
+
     return render(request, "reportes/gastos_categorias.html", {
         "form": form, "filas": filas, "totales": totales, "desde": desde, "hasta": hasta,
     })
@@ -142,6 +192,11 @@ def balance(request):
     fondos_qs = Fondo.objects.filter(pk=fondo.pk) if fondo else None
     saldos = services.balance_por_fondo(fondos_qs)
     serie_mensual = services.evolucion_mensual(desde, hasta, fondo)
+
+    if request.GET.get("formato") == "pdf":
+        institucion, periodo = _institucion_y_periodo()
+        buffer = pdf.construir_balance_pdf(institucion, periodo, desde, hasta, saldos, serie_mensual)
+        return _exportar_pdf(buffer, f"balance_{desde}_{hasta}.pdf")
 
     return render(request, "reportes/balance.html", {
         "form": form, "saldos": saldos, "desde": desde, "hasta": hasta,
