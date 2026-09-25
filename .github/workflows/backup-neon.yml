@@ -83,6 +83,11 @@ jobs:
       - name: Borrar backups de más de 30 días (no acumular para siempre)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Como el workflow no hace `actions/checkout`, no hay un repositorio
+          # git local del que `gh` pueda adivinar a qué repo se refiere —
+          # GH_REPO se lo dice explícitamente (equivale a pasar --repo en
+          # cada comando de `gh` de este paso).
+          GH_REPO: ${{ github.repository }}
         run: |
           python3 - <<'PY'
           import json
