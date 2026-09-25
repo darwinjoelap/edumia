@@ -61,7 +61,11 @@
         </a>
       </div>
       <div class="col-sm-6">
+        {% if puede_registrar_gastos %}
+        <a href="{% url 'gastos:gasto_registrar' %}" class="action-btn action-btn-gasto">
+        {% else %}
         <a href="{% url 'core:proximamente' %}?titulo=Registrar%20gasto" class="action-btn action-btn-gasto">
+        {% endif %}
           <span class="action-btn-icon"><i class="bi bi-dash-circle-fill"></i></span>
           <div>
             <div class="action-btn-title">Registrar gasto</div>

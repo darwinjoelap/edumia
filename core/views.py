@@ -25,6 +25,9 @@ ROLES_FINANZAS = ("administrador", "responsable_fondo", "director", "auditor")
 # con ingresos.views.ROLES_REGISTRO.
 ROLES_REGISTRO_INGRESOS = ("administrador", "responsable_fondo")
 
+# Igual, pero para gastos (Fase 5). Debe coincidir con gastos.views.ROLES_REGISTRO.
+ROLES_REGISTRO_GASTOS = ("administrador", "responsable_fondo")
+
 # Rol con control total sobre la configuración general (distinto del
 # superusuario de Django, que sigue siendo el único con acceso a /admin/).
 ROLES_CONFIGURACION = ("administrador",)
@@ -72,6 +75,7 @@ def inicio(request):
 
     puede_ver_finanzas = request.user.is_superuser or rol in ROLES_FINANZAS
     puede_registrar_ingresos = request.user.is_superuser or rol in ROLES_REGISTRO_INGRESOS
+    puede_registrar_gastos = request.user.is_superuser or rol in ROLES_REGISTRO_GASTOS
     puede_configurar = request.user.is_superuser or rol in ROLES_CONFIGURACION
 
     # Todavía no existen los modelos de Ingreso/Gasto (Fase 3 y 5): el
@@ -100,6 +104,7 @@ def inicio(request):
         "total_secciones": secciones.count(),
         "puede_ver_finanzas": puede_ver_finanzas,
         "puede_registrar_ingresos": puede_registrar_ingresos,
+        "puede_registrar_gastos": puede_registrar_gastos,
         "puede_configurar": puede_configurar,
         "balance": formatear(balance_ves),
         "balance_usd": balance_usd,

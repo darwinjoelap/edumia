@@ -155,6 +155,16 @@ Formato: una entrada por decisión. Estado: **Cerrada** o **Pendiente**.
 - El formset de renglones (`DetalleGastoFormSet`) usa HTMX para agregar filas sin recargar la página: cada clic en "Agregar renglón" trae una fila vacía más del servidor y actualiza el contador `TOTAL_FORMS` del formulario con un *out-of-band swap*.
 - De paso se agregó una pantalla de catálogo para Bancos (`/ingresos/configuracion/bancos/`, ya existía el modelo y el admin de Django, pero no una pantalla propia de Edumia) — no estaba en el alcance original de esta fase, pero Darwin la pidió al notar que no tenía dónde agregar bancos fuera de `/admin/`.
 
+## D-23 — Filtrado de gastos por "macro" (categoría) y concepto (producto) en un rango de fechas: es un filtro, no una entidad nueva (Fase 5/6)
+- Estado: Cerrada (2026-09-25)
+- Origen: Darwin pidió poder crear un "nombre macro" (ej. "Comedor Semanal del 01/09 al 07/09") al que se le añaden conceptos (tomate, cebolla, leche), para saber cuánto se gastó en un concepto o en el macro dentro de un rango de fechas.
+- Confirmado con Darwin: esto **ya lo cubre el modelo actual**, sin cambios de esquema:
+  - El "macro" = `CategoriaGasto` (ej. "Comedor"), que ya existe como catálogo.
+  - El "concepto" = `Producto` (ej. "Tomate"), ya enlazado a una única `CategoriaGasto` (`Producto.categoria`) — se confirmó que un producto pertenece a una sola categoría, no varias.
+  - El rango de fechas ("01/09 al 07/09") **no se guarda como registro propio**: es un filtro que se aplica sobre `Gasto.fecha` al momento de consultar, no una entidad tipo "lote" o "campaña" con nombre persistido.
+- Consecuencia para Fase 6 (Reportes): la pantalla de reportes de gastos debe permitir filtrar por Categoría y/o Producto, cruzado con un rango de fechas (`Gasto.fecha` entre dos valores), sumando `DetalleGasto.subtotal_ves`/`subtotal_usd` de los renglones que calcen. Así "¿cuánto se gastó en tomate del 01/09 al 07/09?" y "¿cuánto se gastó en Comedor del 01/09 al 07/09?" son la misma consulta con distinto nivel de filtro (producto vs. categoría), sin necesidad de un modelo nuevo.
+- No se implementa nada de código en esta entrada: es una decisión de diseño para cuando se construya Fase 6.
+
 ---
 
 ## Pendientes (sin respuesta aún)
