@@ -54,9 +54,15 @@ jobs:
           set -e
           FECHA=$(date -u +%Y-%m-%d)
           echo "FECHA=$FECHA" >> "$GITHUB_ENV"
+          # El runner ya trae un `pg_dump` 16 preinstalado en /usr/bin, y ese
+          # sigue teniendo prioridad aunque se instale el paquete 18 al lado
+          # (no queda gestionado por update-alternatives como uno esperaría).
+          # Por eso se llama al binario 18 por su ruta completa, sin depender
+          # de cuál "pg_dump" resuelva el PATH.
+          /usr/lib/postgresql/18/bin/pg_dump --version
           # -Fc: formato "custom" de pg_dump, comprimido y el único que
           # admite pg_restore con --clean/--if-exists para restaurar limpio.
-          pg_dump "$DATABASE_URL" --no-owner --no-privileges -Fc -f "edumia-backup-$FECHA.dump"
+          /usr/lib/postgresql/18/bin/pg_dump "$DATABASE_URL" --no-owner --no-privileges -Fc -f "edumia-backup-$FECHA.dump"
           ls -lh "edumia-backup-$FECHA.dump"
 
       - name: Publicar como GitHub Release
