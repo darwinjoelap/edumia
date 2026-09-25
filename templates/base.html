@@ -129,6 +129,14 @@
         <i class="bi bi-list fs-4"></i>
       </button>
       <p class="edumia-topbar-title mb-0">{% block titulo_topbar %}{% endblock %}</p>
+      {% if user.is_superuser or user.perfilusuario.rol == "administrador" or user.perfilusuario.rol == "responsable_fondo" %}
+      <button type="button" id="edumia-offline-boton"
+              class="btn btn-sm btn-outline-warning d-none ms-auto align-items-center gap-2"
+              title="Datos guardados en este dispositivo esperando conexión para enviarse. Toca para reintentar ahora.">
+        <i class="bi bi-cloud-arrow-up-fill"></i>
+        <span><span id="edumia-offline-contador">0</span> pendiente(s) por enviar</span>
+      </button>
+      {% endif %}
     </header>
     <main class="edumia-content">
       {% if messages %}
@@ -172,6 +180,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.12/dist/htmx.min.js"></script>
+{% if user.is_authenticated %}
+<script src="{% static 'js/offline-sync-core.js' %}"></script>
+<script src="{% static 'js/offline-status.js' %}"></script>
+{% endif %}
 <script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {

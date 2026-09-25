@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block titulo %}Registrar ingreso — Edumia{% endblock %}
 {% block titulo_topbar %}Registrar ingreso{% endblock %}
 {% block contenido %}
@@ -21,7 +22,7 @@
 
 <div class="card card-edumia">
   <div class="card-body p-4">
-    <form method="post" novalidate>
+    <form method="post" novalidate data-offline-tipo="aportes">
       {% csrf_token %}
 
       <h2 class="h6 text-uppercase text-muted mb-3">Concepto</h2>
@@ -166,6 +167,11 @@
     </form>
   </div>
 </div>
+<p class="text-muted small mt-2">
+  <i class="bi bi-cloud-slash"></i> Si te quedas sin conexión al enviar, este formulario se guarda en el
+  dispositivo y se envía solo en cuanto vuelva la señal (necesitas haber abierto esta pantalla al menos una
+  vez con conexión).
+</p>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -190,4 +196,5 @@
     actualizar();
   })();
 </script>
+<script src="{% static 'js/offline-forms.js' %}"></script>
 {% endblock %}

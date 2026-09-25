@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block titulo %}{% if gasto %}Editar gasto{% else %}Registrar gasto{% endif %} — Edumia{% endblock %}
 {% block titulo_topbar %}{% if gasto %}Editar gasto #{{ gasto.pk }}{% else %}Registrar gasto{% endif %}{% endblock %}
 {% block contenido %}
@@ -17,7 +18,7 @@
   </div>
 {% endif %}
 
-<form method="post" novalidate>
+<form method="post" novalidate {% if not gasto %}data-offline-tipo="gastos"{% endif %}>
   {% csrf_token %}
 
   <div class="card card-edumia mb-3">
@@ -107,4 +108,15 @@
   <button type="submit" class="btn btn-edumia-primary">Guardar</button>
   <a href="{% url 'gastos:gasto_bandeja' %}" class="btn btn-outline-secondary">Cancelar</a>
 </form>
+{% if not gasto %}
+<p class="text-muted small mt-2">
+  <i class="bi bi-cloud-slash"></i> Si te quedas sin conexión al enviar, este formulario se guarda en el
+  dispositivo y se envía solo en cuanto vuelva la señal (necesitas haber abierto esta pantalla al menos una
+  vez con conexión, y agregar todos los renglones que hagan falta antes de perderla).
+</p>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+{% if not gasto %}<script src="{% static 'js/offline-forms.js' %}"></script>{% endif %}
 {% endblock %}

@@ -1,15 +1,22 @@
 {% load static %}
-// Service worker de Edumia — PWA nivel 1 (D-22): solo instalabilidad y un
-// "shell" mínimo en caché para que la app cargue algo (y una pantalla de
-// aviso) sin conexión. La sincronización real de datos offline (colas
-// IndexedDB, Background Sync) es la Fase 7, todavía no está aquí.
+// Service worker de Edumia. PWA nivel 1 (D-22): instalabilidad y un "shell"
+// mínimo en caché para que la app cargue algo (y una pantalla de aviso) sin
+// conexión. PWA nivel 2 / Fase 7 (D-27): la cola offline (IndexedDB) y el
+// reenvío con Background Sync — ver offline-sync-core.js, cargado aquí con
+// importScripts porque este archivo corre en el hilo del service worker,
+// no en el de la página.
 
-const CACHE_NAME = "edumia-shell-v1";
+importScripts("{% static 'js/offline-sync-core.js' %}");
+
+const CACHE_NAME = "edumia-shell-v2";
 const OFFLINE_URL = "{% url 'core:sin_conexion' %}";
 const ARCHIVOS_SHELL = [
   "{% static 'css/edumia.css' %}",
   "{% static 'img/logo.png' %}",
   "{% static 'img/favicon-32.png' %}",
+  "{% static 'js/offline-sync-core.js' %}",
+  "{% static 'js/offline-status.js' %}",
+  "{% static 'js/offline-forms.js' %}",
   OFFLINE_URL,
 ];
 
@@ -52,3 +59,22 @@ self.addEventListener("fetch", (event) => {
     );
   }
 });
+
+// --- Fase 7 (D-27): Background Sync de la cola offline --------------------
+// `offline-forms.js` registra el tag "sync-aportes"/"sync-gastos" (en la
+// página) apenas guarda algo en IndexedDB mientras no hay conexión. El
+// navegador dispara este evento solo (incluso con la app cerrada, en
+// Android/Chrome) en cuanto detecta que volvió la señal.
+
+self.addEventListener("sync", (event) => {
+  if (event.tag === "sync-aportes" || event.tag === "sync-gastos") {
+    const tipo = event.tag === "sync-aportes" ? "aportes" : "gastos";
+    event.waitUntil(self.EdumiaOffline.sincronizarCola(tipo).then(avisarClientes));
+  }
+});
+
+function avisarClientes() {
+  return self.clients.matchAll().then((clientes) => {
+    clientes.forEach((cliente) => cliente.postMessage({ tipo: "edumia-offline-sync" }));
+  });
+}

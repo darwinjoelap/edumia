@@ -1,7 +1,7 @@
 # Edumia — Registro de decisiones
 
 Formato: una entrada por decisión. Estado: **Cerrada** o **Pendiente**.
-Última actualización: 2026-09-22
+Última actualización: 2026-09-25
 
 ## D-01 — Alcance: una sola institución
 - Estado: Cerrada
@@ -200,6 +200,22 @@ Formato: una entrada por decisión. Estado: **Cerrada** o **Pendiente**.
 - Validado en sandbox: `makemigrations --check --dry-run` limpio tras generar las dos migraciones nuevas, `migrate` aplicado sin errores, la suite existente (15 tests) sigue en verde, y un script de 18 verificaciones nuevas — los tres PDF nuevos (status, content-type, firma `%PDF`, contenido extraído con `pypdf` confirmando institución/datos/total) y que las pantallas normales (sin `?formato=`) sigan funcionando igual que antes.
 - Con esto, los **cuatro reportes de la Fase 6 tienen tanto Excel como PDF**. Sigue pendiente, sin marcar por Darwin como prioritario: los reportes fuera de los cuatro elegidos en D-24 (se agregan reutilizando el mismo motor de filtros y los mismos helpers de PDF).
 
+## D-27 — Fase 7: cola offline (nivel 2 de D-08), primer lote — Aporte y Gasto
+- Estado: Cerrada (2026-09-25)
+- Origen: siguiente fase del plan (D-08 la dejaba para la Fase 7). Se acotó el alcance con Darwin antes de construir: solo **Registrar aporte** y **Registrar gasto** capturan sin conexión (no la alta rápida de estudiantes ni el registro en lote por sección, que quedan para más adelante si hace falta); y se resolvió P-06 (dispositivos): **solo Android**, así que Background Sync nativo del navegador es la vía principal.
+- **Arquitectura:**
+  - Cola local en el navegador con **IndexedDB** (`static/js/offline-sync-core.js`, dos almacenes: `cola_aportes`/`cola_gastos`, clave = `uuid_cliente` generado con `crypto.randomUUID()`). Este archivo no depende del DOM a propósito: se carga igual en la página (`<script>` normal) y dentro del service worker (`importScripts`), para no duplicar la lógica de envío.
+  - Nueva app `sync` (sin modelos, sin migración) con dos endpoints JSON: `POST /sync/api/aporte/` y `POST /sync/api/gasto/` (`sync/views.py`). Construyen el modelo directamente (no pasan por `AporteForm`/`GastoForm`, porque el payload es JSON, no un POST de formulario) pero aplican las mismas reglas: `full_clean()` del modelo, la restricción de fondo propio para `responsable_fondo` (mismo criterio que `GastoForm`, D-14), y el rol requerido (`ROLES_REGISTRO` ya existentes en `ingresos`/`gastos`).
+  - **Idempotencia (I-5, ya prevista desde la Fase 3/5 con `Aporte.uuid_cliente`/`Gasto.uuid_cliente`):** cada endpoint busca primero por `uuid_cliente`; si ya existe, devuelve 200 sin crear nada. Esto es necesario porque Background Sync puede reintentar un envío cuya respuesta se perdió de vuelta (el servidor sí guardó, el navegador no se enteró) — sin esto, ese reintento crearía un duplicado.
+  - **Errores de validación (fondo/proveedor inválido, monto en cero, documento duplicado, etc.) responden 422, nunca 500** — a propósito: la cola del cliente solo reintenta sola cuando NO hay respuesta del servidor (caída de red real). Un 4xx marca el pendiente como "error" en IndexedDB y deja de reintentarse solo, para que alguien lo revise a mano; si en vez de eso fuera un 500, Background Sync lo reintentaría indefinidamente sin que nadie note que nunca va a funcionar.
+  - **Formularios** (`ingresos/aporte_form.html`, `gastos/gasto_form.html` solo al crear, no al editar): `static/js/offline-forms.js` intercepta el `submit` únicamente cuando `navigator.onLine === false` — con conexión el formulario sigue funcionando exactamente igual que antes (POST normal, validación de servidor con errores en pantalla). Sin conexión: guarda el `FormData` tal cual en IndexedDB (para Gasto, agrupa los renglones por su prefijo `renglones-N-...` del formset), pide `Background Sync` (`reg.sync.register("sync-aportes"|"sync-gastos")`, con `try/catch` porque no existe en todos los navegadores) y recarga la pantalla con un aviso.
+  - **Service worker** (`core/templates/core/sw.js`, ahora `edumia-shell-v2`): escucha el evento `sync` y llama a `sincronizarCola()`; al terminar, avisa a las pestañas abiertas con `postMessage` para que actualicen el indicador sin que el usuario tenga que recargar.
+  - **Sin depender solo de Background Sync** (`static/js/offline-status.js`, cargado en `base.html` para cualquier usuario autenticado): al abrir cualquier página y al detectar el evento `online` del navegador, intenta sincronizar las dos colas igual — así la app también sirve en un dispositivo donde Background Sync no esté disponible, sin necesidad de tocar nada.
+  - **Indicador visual de pendientes**: botón en el topbar (`base.html`, visible para administrador/responsable_fondo/superusuario) que muestra cuántos quedan por enviar y, al tocarlo, fuerza un intento de sincronización inmediato.
+- **Fuera de alcance de este lote, documentado a propósito:** la app debe haberse abierto con conexión al menos una vez para poder llenar el formulario sin conexión (el service worker no precachea las páginas dinámicas de captura, solo el shell estático) — se avisa con una nota en las dos pantallas. Editar un gasto ya existente no admite modo offline (solo crear uno nuevo). La alta rápida de estudiantes y el registro en lote por sección se dejan para una fase aparte si hace falta.
+- Validado en sandbox: `manage.py check`, `makemigrations --check --dry-run` (sin cambios — `sync` no tiene modelos), `migrate` limpio, la suite existente (`cambio`+`ingresos`, 15 tests) sigue en verde, `collectstatic` recoge los tres archivos JS nuevos sin error, y un script de 33 verificaciones nuevas contra los dos endpoints con el `Client` de pruebas: creación válida de Aporte y de Gasto (con renglones y total calculado), reenvío del mismo `uuid_cliente` (200, no duplica), anónimo/docente sin permiso (403), datos inválidos y tasa inexistente (422, nunca 500), `responsable_fondo` bloqueado a su propio fondo aunque el payload lo fuerce, JSON malformado (400), y el documento duplicado por proveedor (G-1, Fase 5) respetado también por esta vía.
+- No se agregó ninguna dependencia nueva a `requirements.txt` (todo con `json`/`uuid` de la librería estándar de Python y APIs nativas del navegador).
+
 ---
 
 ## Pendientes (sin respuesta aún)
@@ -209,5 +225,6 @@ Formato: una entrada por decisión. Estado: **Cerrada** o **Pendiente**.
 | P-03 | ¿Qué tasa es la oficial: BCV, paralela o la que fije el consejo directivo? | `TasaCambio.fuente`, reportes | Fase 2 |
 | P-04 | ¿El saldo por fondo es contable (aporte amarrado a fondo) o solo informativo? | `ConceptoIngreso.fondo`, saldo | Fase 5 |
 | P-05 | ¿Cuántos alumnos y secciones hay? | Pantalla de registro en lote vs. búsqueda | Fase 3 |
-| P-06 | ¿Android, iPhone o mezcla en los docentes? | Background Sync (no existe en iOS) | Fase 7 |
 | P-07 | Confirmar con el administrador: D-06, D-07 y pago parcial (D-13) | Modelo `Aporte` / `MontoConcepto` | Fase 1 (no bloquea el modelo; sí el flujo de captura de Fase 3) |
+
+**P-06 resuelto (2026-09-25, ver D-27):** solo Android por ahora. Si más adelante se suma un iPhone, hay que revisar `static/js/offline-forms.js`/`offline-status.js` (ya están pensados para no depender de Background Sync, así que debería funcionar igual, pero conviene probarlo en ese dispositivo antes de confiar en él).

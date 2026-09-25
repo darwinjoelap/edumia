@@ -3,7 +3,7 @@
 Regla: no se empieza una fase sin cerrar la anterior aquí.
 Última actualización: 2026-09-25
 
-**Fase actual:** 6 — Reportes y balance (primer lote cerrado, quedan reportes/PDF pendientes — ver abajo)
+**Fase actual:** 7 — PWA offline (primer lote cerrado 2026-09-25: Aporte y Gasto)
 **MVP:** Fases 0–5 — completo en funcionalidad, quedan pendientes sueltos de validación manual (ver cada fase abajo)
 
 | Fase | Nombre | Horas | Estado |
@@ -14,8 +14,8 @@ Regla: no se empieza una fase sin cerrar la anterior aquí.
 | 3 | Ingresos | 30–40 | **Cerrada** (2026-09-25) |
 | 4 | Recibos | 16–22 | **Cerrada** (2026-09-25) |
 | 5 | Gastos | 28–36 | **Cerrada** (2026-09-25) |
-| 6 | Reportes y balance | 30–40 | En curso — primer lote cerrado 2026-09-25 (4 reportes + balance real) |
-| 7 | PWA offline | 24–32 | Pendiente |
+| 6 | Reportes y balance | 30–40 | **Cerrada** (2026-09-25) — cuatro reportes elegidos (D-24) con Excel y PDF (D-25/D-26); el resto queda pendiente sin marcar prioritario |
+| 7 | PWA offline | 24–32 | En curso — primer lote cerrado 2026-09-25 (Aporte y Gasto, D-27) |
 | 8 | Puesta en producción | 20–30 | Pendiente |
 
 ## Diseño (previo a la Fase 0)
@@ -166,7 +166,7 @@ Regla: no se empieza una fase sin cerrar la anterior aquí.
 - [x] Validación con sandbox: `manage.py check`, `makemigrations --check --dry-run` (limpio), suite existente (`cambio`+`ingresos`, 15 tests, verde) y un script de 39 verificaciones nuevas cubriendo registro con 2 renglones, HTMX de renglón nuevo, restricción de fondo por responsable, documento duplicado, las dos confirmaciones de G-3, saldo negativo, saldo positivo real (aporte − gasto), edición bloqueada tras aprobar, anulación y los 5 catálogos nuevos
 - [ ] Pendiente de validar en producción con datos reales (concurrencia de aprobación, y que el saldo por fondo cuadre con la contabilidad real de la institución una vez haya movimiento)
 
-## Fase 6 — Reportes y balance — EN CURSO (primer lote 2026-09-25)
+## Fase 6 — Reportes y balance — CERRADA (primer lote 2026-09-25; el resto de reportes queda pendiente sin marcar prioritario)
 - [x] Motor de filtros compartido (`reportes/services.py`): rango de fechas (`?desde=&hasta=`, por defecto últimos 30 días), fondo bloqueado a su propio fondo para `responsable_fondo` (`fondo_bloqueado_para()`, mismo criterio que `GastoForm`), reutilizable por cualquier reporte nuevo
 - [x] Nueva app `reportes` (ya estaba creada vacía desde antes; sin modelos propios — todo se calcula al vuelo sobre `Aporte`/`Gasto`/`DetalleGasto`, no hace falta migración)
 - [x] Reporte: **ingresos por estudiante/sección/grado**, filtrable por rango de fechas, grado y sección, con opción "solo verificados" (por defecto sí) — `/reportes/ingresos/`
@@ -184,12 +184,18 @@ Regla: no se empieza una fase sin cerrar la anterior aquí.
 - [ ] **Pendiente, fuera de este lote**: los reportes fuera de los cuatro que Darwin priorizó (D-24) — se agregan cuando haga falta, reutilizando el motor de filtros y los helpers de PDF ya construidos
 - [ ] Pendiente de validar en el navegador contra Neon (este entorno solo prueba contra SQLite, mismo patrón que las fases anteriores) — en particular el gráfico de Chart.js y la exportación a Excel abriendo el archivo descargado
 
-## Fase 7 — PWA offline
-- [ ] Cola IndexedDB con `uuid` de cliente
-- [ ] Endpoint de sincronización idempotente
-- [ ] Background Sync con reintentos (iOS: sincronizar al abrir)
-- [ ] Indicador visual de pendientes
-- [ ] Pruebas sin red y de duplicados
+## Fase 7 — PWA offline — EN CURSO (primer lote 2026-09-25)
+- [x] Alcance acotado con Darwin antes de construir (D-27): solo **Registrar aporte** y **Registrar gasto** capturan sin conexión por ahora; P-06 resuelto (solo Android, Background Sync disponible).
+- [x] Cola offline con **IndexedDB** (`static/js/offline-sync-core.js`, un almacén por tipo, clave `uuid_cliente` generado con `crypto.randomUUID()`) — el mismo archivo se usa en la página y en el service worker (`importScripts`), sin duplicar lógica.
+- [x] **Endpoint de sincronización idempotente**: nueva app `sync` (sin modelos), `POST /sync/api/aporte/` y `POST /sync/api/gasto/` — reenviar el mismo `uuid_cliente` nunca duplica (devuelve 200 «ya_existia» en vez de crear de nuevo); reutiliza `Aporte.uuid_cliente`/`Gasto.uuid_cliente`, ya preparados desde las Fases 3 y 5 (I-5).
+- [x] Errores de validación del servidor (422) en vez de 500: un pendiente rechazado se marca "error" en la cola y deja de reintentarse solo, para no quedar reintentando algo que nunca va a funcionar.
+- [x] **Background Sync** (`core/templates/core/sw.js`, ahora `edumia-shell-v2`): al volver la señal, el navegador dispara la sincronización solo (Android/Chrome), incluso con la app cerrada; avisa a las pestañas abiertas por `postMessage` para refrescar el indicador.
+- [x] Sincronización también **al abrir la app y al detectar el evento `online`** (`static/js/offline-status.js`), sin depender solo de Background Sync — sirve igual si en el futuro se suma un dispositivo donde no esté disponible.
+- [x] **Indicador visual de pendientes**: botón en el topbar (administrador/responsable_fondo/superusuario) con el conteo; tocarlo fuerza un reintento inmediato.
+- [x] Los formularios de Aporte y Gasto (`ingresos/aporte_form.html`, `gastos/gasto_form.html` solo al crear) interceptan el envío únicamente sin conexión (`navigator.onLine === false`) — con conexión funcionan exactamente igual que antes, sin ningún cambio de comportamiento.
+- [x] Validado en sandbox: `manage.py check`, `makemigrations --check --dry-run` (sin cambios), `migrate` limpio, la suite existente (`cambio`+`ingresos`, 15 tests) sigue en verde, `collectstatic` recoge los tres JS nuevos sin error, y un script de 33 verificaciones nuevas contra los dos endpoints — creación válida (Aporte y Gasto con renglones/total), reenvío del mismo `uuid_cliente` (idempotencia, sin duplicar), anónimo/docente sin permiso (403), datos inválidos y tasa inexistente (422, nunca 500), `responsable_fondo` bloqueado a su propio fondo aunque se fuerce por el payload, JSON malformado (400), y el documento duplicado por proveedor (G-1) respetado también por esta vía.
+- [ ] **Pendiente de probar en el navegador real (Android), este entorno no puede simular Background Sync de verdad**: instalar la PWA, llenar "Registrar aporte" o "Registrar gasto" en modo avión, confirmar el aviso de guardado y que el botón de pendientes aparezca, reactivar los datos/wifi y confirmar que se envía solo (sin tocar nada) y que el pendiente desaparece del botón.
+- [ ] Pendiente, fuera de este lote: alta rápida de estudiantes y registro en lote por sección sin conexión (se agregan si hace falta, reutilizando `offline-sync-core.js`); edición de un gasto ya existente sin conexión (por ahora solo la creación).
 
 ## Fase 8 — Producción
 - [ ] Bitácora de auditoría y `simple-history` activos
