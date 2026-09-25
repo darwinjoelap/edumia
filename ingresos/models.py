@@ -273,6 +273,22 @@ class Aporte(MontoBimonedaMixin, models.Model):
     def clean(self):
         errores = {}
 
+        # `periodo`/`fondo` se autocompletan en `full_clean()` (antes de
+        # llegar aquí) y no están en ningún formulario, así que Django no
+        # valida por su cuenta que hayan quedado resueltos: si no hay período
+        # activo, o no existe el Fondo General, sin este chequeo el error
+        # solo aparecería como un IntegrityError feo al guardar (NOT NULL
+        # constraint), en vez de un mensaje claro para quien está registrando.
+        if not self.periodo_id:
+            errores["fecha_pago"] = (
+                "No hay ningún período escolar activo: actívalo en Configuración antes de registrar ingresos."
+            )
+        if not self.fondo_id:
+            errores["concepto"] = (
+                "No existe el Fondo General todavía (hace falta correr `seed_datos_iniciales` en este entorno, "
+                "o asignarle un fondo a este concepto en Configuración)."
+            )
+
         if self.concepto_id and self.concepto_libre:
             errores["concepto_libre"] = (
                 "No se puede elegir un concepto del catálogo y además escribir uno libre: usa solo uno."

@@ -139,6 +139,12 @@ Regla: no se empieza una fase sin cerrar la anterior aquí.
 - [ ] La prueba de concurrencia real que pide el diseño (`docs/MODELOS_cambio_ingresos.md`: "20 hilos verificando simultáneamente contra Postgres real") queda pendiente de correr contra tu Neon `dev`, porque SQLite serializa todo el archivo y no reproduce de verdad una condición de carrera — la de este entorno es solo una prueba de humo de que el código no se cae ni deja recibos a medias.
 - [ ] Falta que edites la Institución en producción con el nombre, RIF y dirección reales antes de emitir el primer recibo real (ya señalado desde el cierre de la Fase 1) — mientras tanto los recibos van a salir con los datos de ejemplo.
 
+### Bug encontrado en producción justo después de este cierre (2026-09-25) y ya corregido
+- **Síntoma:** `Server Error (500)` al enviar el formulario de "Registrar ingreso" en producción (no pasaba en ningún otro lado del sitio).
+- **Causa real:** en Neon `production` nunca se corrió `python manage.py seed_datos_iniciales` (solo se corrió en `dev`, en tu máquina) — por eso no existía el **Fondo General**. Cuando un `ConceptoIngreso` no tiene fondo propio (como "Cooperativa escolar"), `Aporte._autocompletar_periodo_y_fondo()` cae al Fondo General; si no existe ninguno, `fondo` queda `None` y el `INSERT` en la base de datos falla con un `IntegrityError` (`NOT NULL constraint`) — como `periodo`/`fondo` no están en el formulario, Django nunca los valida antes de guardar, así que el error se veía como un 500 en blanco en vez de un mensaje claro. Reproducido y confirmado en un sandbox aparte con el traceback exacto.
+- **Corrección de código (ya en producción):** `Aporte.clean()` ahora valida explícitamente que `periodo` y `fondo` quedaran resueltos tras el autocompletado, y si no, muestra un mensaje claro en el formulario en vez de dejar que reviente como error de base de datos. No hizo falta migración nueva.
+- **Corrección de datos que tú tienes pendiente:** correr `seed_datos_iniciales` contra Neon `production` (con el mismo truco de `DATABASE_URL` temporal desde tu máquina que usaste para crear el superusuario de producción, D-18) — esto crea el Fondo General y completa el catálogo de bancos/formas de pago que también estaba incompleto ahí (solo tenías "Pago movil" creado a mano, y ningún banco cargado).
+
 ## Fase 5 — Gastos
 - [ ] Modelos `gastos` + migraciones
 - [ ] Catálogos (fondos, categorías, productos, unidades, proveedores)
