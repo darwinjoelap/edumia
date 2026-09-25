@@ -15,6 +15,7 @@ urlpatterns = [
     path("cambio/", include("cambio.urls")),
     path("recibos/", include("recibos.urls")),
     path("gastos/", include("gastos.urls")),
+    path("reportes/", include("reportes.urls")),
     path("", include("core.urls")),
     path("", core_views.inicio, name="inicio"),
 ]

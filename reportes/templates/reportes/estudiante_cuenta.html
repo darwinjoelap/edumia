@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block titulo %}Estado de cuenta — Edumia{% endblock %}
+{% block titulo_topbar %}Estado de cuenta{% endblock %}
+{% block contenido %}
+
+<h1 class="h3 mb-4">Estado de cuenta por estudiante</h1>
+
+<div class="card card-edumia mb-4">
+  <div class="card-body">
+    <form method="get" class="row g-3 align-items-end">
+      <div class="col-sm-8">
+        <label class="form-label small fw-semibold">Buscar estudiante</label>
+        {{ form.q }}
+      </div>
+      <div class="col-sm-4">
+        <button type="submit" class="btn btn-edumia-primary btn-sm w-100"><i class="bi bi-search"></i> Buscar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if q and not estudiante %}
+<div class="card card-edumia mb-4">
+  {% if resultados %}
+  <div class="list-group list-group-flush">
+    {% for est in resultados %}
+    <a href="?q={{ q }}&estudiante={{ est.pk }}" class="list-group-item list-group-item-action">
+      {{ est.apellidos }} {{ est.nombres }}
+      <span class="text-muted small">{{ est.cedula_escolar|default:"sin cédula escolar" }}</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state"><i class="bi bi-search d-block mb-2"></i>Sin resultados para «{{ q }}».</div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if estudiante %}
+<div class="card card-edumia mb-4">
+  <div class="card-header bg-white fw-semibold d-flex justify-content-between">
+    <span>{{ estudiante.apellidos }} {{ estudiante.nombres }}</span>
+    <span class="text-muted small">{{ estudiante.cedula_escolar|default:"—" }}</span>
+  </div>
+  <div class="card-body">
+    <p class="mb-0">
+      Total verificado: <strong>Bs. {{ totales.ves|default:0 }}</strong> ·
+      <strong>$ {{ totales.usd|default:0 }}</strong>
+    </p>
+  </div>
+</div>
+
+<div class="card card-edumia">
+  {% if aportes %}
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead>
+        <tr><th>Fecha</th><th>Concepto</th><th>Período escolar</th><th>Sección</th><th class="text-end">Monto</th><th>Estado</th></tr>
+      </thead>
+      <tbody>
+      {% for aporte in aportes %}
+        <tr>
+          <td>{{ aporte.fecha_pago }}</td>
+          <td>{{ aporte.concepto|default:aporte.concepto_libre }}</td>
+          <td>{{ aporte.inscripcion.periodo }}</td>
+          <td>{{ aporte.inscripcion.seccion }}</td>
+          <td class="text-end">{{ aporte.monto }} {{ aporte.moneda }}</td>
+          <td><span class="badge text-bg-light">{{ aporte.get_estado_display }}</span></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><i class="bi bi-inbox d-block mb-2"></i>Este estudiante no tiene aportes registrados.</div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

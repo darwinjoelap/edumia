@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block titulo %}Ingresos por estudiante — Edumia{% endblock %}
+{% block titulo_topbar %}Ingresos por estudiante{% endblock %}
+{% block contenido %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+  <div>
+    <h1 class="h3 mb-1">Ingresos por estudiante</h1>
+    <p class="text-muted mb-0">{{ desde }} al {{ hasta }}</p>
+  </div>
+  <a href="?{{ request.GET.urlencode }}&formato=xlsx" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-file-earmark-excel"></i> Exportar a Excel
+  </a>
+</div>
+
+<div class="card card-edumia mb-4">
+  <div class="card-body">
+    <form method="get" class="row g-3 align-items-end">
+      <div class="col-sm-3">
+        <label class="form-label small fw-semibold">Desde</label>
+        {{ form.desde }}
+      </div>
+      <div class="col-sm-3">
+        <label class="form-label small fw-semibold">Hasta</label>
+        {{ form.hasta }}
+      </div>
+      <div class="col-sm-2">
+        <label class="form-label small fw-semibold">Grado</label>
+        {{ form.grado }}
+      </div>
+      <div class="col-sm-2">
+        <label class="form-label small fw-semibold">Sección</label>
+        {{ form.seccion }}
+      </div>
+      <div class="col-sm-2">
+        <div class="form-check mt-4">
+          {{ form.solo_verificados }}
+          <label class="form-check-label small" for="{{ form.solo_verificados.id_for_label }}">Solo verificados</label>
+        </div>
+      </div>
+      <div class="col-12">
+        <button type="submit" class="btn btn-edumia-primary btn-sm"><i class="bi bi-funnel"></i> Filtrar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card card-edumia">
+  {% if filas %}
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead>
+        <tr><th>Estudiante</th><th>Cédula escolar</th><th>Grado</th><th>Sección</th><th class="text-end">Total Bs.</th><th class="text-end">Total $</th><th class="text-end"># aportes</th></tr>
+      </thead>
+      <tbody>
+      {% for fila in filas %}
+        <tr>
+          <td>{{ fila.inscripcion__estudiante__apellidos }} {{ fila.inscripcion__estudiante__nombres }}</td>
+          <td>{{ fila.inscripcion__estudiante__cedula_escolar|default:"—" }}</td>
+          <td>{{ fila.inscripcion__seccion__grado__nombre }}</td>
+          <td>{{ fila.inscripcion__seccion__nombre }}</td>
+          <td class="text-end">{{ fila.total_ves }}</td>
+          <td class="text-end">{{ fila.total_usd }}</td>
+          <td class="text-end">{{ fila.cantidad }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr class="fw-semibold">
+          <td colspan="4">Total</td>
+          <td class="text-end">{{ totales.total_ves|default:0 }}</td>
+          <td class="text-end">{{ totales.total_usd|default:0 }}</td>
+          <td class="text-end">{{ totales.cantidad|default:0 }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-inbox d-block mb-2"></i>
+    No hay aportes con estudiante en ese rango y esos filtros.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

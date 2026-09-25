@@ -165,6 +165,20 @@ Formato: una entrada por decisión. Estado: **Cerrada** o **Pendiente**.
 - Consecuencia para Fase 6 (Reportes): la pantalla de reportes de gastos debe permitir filtrar por Categoría y/o Producto, cruzado con un rango de fechas (`Gasto.fecha` entre dos valores), sumando `DetalleGasto.subtotal_ves`/`subtotal_usd` de los renglones que calcen. Así "¿cuánto se gastó en tomate del 01/09 al 07/09?" y "¿cuánto se gastó en Comedor del 01/09 al 07/09?" son la misma consulta con distinto nivel de filtro (producto vs. categoría), sin necesidad de un modelo nuevo.
 - No se implementa nada de código en esta entrada: es una decisión de diseño para cuando se construya Fase 6.
 
+## D-24 — Alcance real de la Fase 6 (primer lote): no existían "los once reportes" documentados
+- Estado: Cerrada (2026-09-25)
+- Al empezar la Fase 6, `docs/ESTADO.md` mencionaba "los once reportes" pero no existe (ni existió) un `docs/MODELOS_reportes.md` con esa lista — no se encontró en ningún documento del proyecto. En vez de inventar once reportes a ciegas, se le preguntó a Darwin cuáles priorizar.
+- Se construyeron los **cuatro que Darwin eligió** como prioritarios, con un motor de filtros compartido (`reportes/services.py`) reutilizable para los que falten:
+  1. **Ingresos por estudiante/sección/grado**, filtrable por rango de fechas, grado y sección, con opción de incluir no verificados.
+  2. **Gastos por categoría/producto** (ver D-23), filtrable por rango de fechas, fondo, categoría y producto.
+  3. **Balance por fondo**: saldo actual (reutiliza `gastos.services.saldo_fondo()`, ya probado desde la Fase 5) + gráfico de evolución mensual (Chart.js vía CDN) de ingresos verificados vs. gastos aprobados.
+  4. **Estado de cuenta por estudiante**: buscador + historial completo de aportes (excluye anulados) con total verificado.
+- Los cuatro tienen exportación a Excel (`openpyxl`, ya estaba en `requirements.txt` desde antes — no fue necesario agregar dependencias nuevas) vía `?formato=xlsx` sobre la misma URL filtrada.
+- **De paso, se conectó el balance real del dashboard** (hueco documentado desde la Fase 2): `core/views.py:inicio` ahora suma `gastos.services.saldo_fondo()` de todos los fondos en vez de mostrar `Bs. 0,00` fijo. Los dos montos (Bs. y USD) se suman cada uno por su lado, sin reconvertir uno al otro con la tasa de hoy (mismo criterio que D-02/`saldo_fondo()`) — la tasa vigente se sigue mostrando, pero solo como referencia junto al botón "Ver en USD".
+- Acceso: mismos roles que ya veían el balance en el dashboard (`administrador`, `responsable_fondo`, `director`, `auditor`); el docente no entra. `responsable_fondo` tiene el filtro de fondo bloqueado a su propio fondo en los reportes de Gastos y Balance (mismo criterio que `GastoForm` desde la Fase 5), verificado que no se puede forzar por la URL.
+- **Queda pendiente, explícitamente fuera de este primer lote** (ver `docs/ESTADO.md`, Fase 6): los reportes restantes que Darwin no marcó como prioritarios ahora, exportación a PDF con encabezado (Excel sí quedó listo), y una revisión de índices/N+1 dedicada más allá de las consultas ya agregadas con `.values()/.annotate()` que se usaron en este lote.
+- Validado en sandbox: `manage.py check`, `makemigrations --check --dry-run` (sin cambios — esta app no tiene modelos propios), la suite existente (`cambio`+`ingresos`, 15 tests, verde) y un script de 25 verificaciones nuevas con el `Client` de pruebas cubriendo los cuatro reportes, sus filtros, la exportación a Excel (content-type correcto), el balance real del dashboard, el bloqueo de fondo para `responsable_fondo`, y que el docente reciba 403.
+
 ---
 
 ## Pendientes (sin respuesta aún)

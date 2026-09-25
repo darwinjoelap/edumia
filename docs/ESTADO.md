@@ -3,7 +3,7 @@
 Regla: no se empieza una fase sin cerrar la anterior aquí.
 Última actualización: 2026-09-25
 
-**Fase actual:** 6 — Reportes y balance (sin empezar)
+**Fase actual:** 6 — Reportes y balance (primer lote cerrado, quedan reportes/PDF pendientes — ver abajo)
 **MVP:** Fases 0–5 — completo en funcionalidad, quedan pendientes sueltos de validación manual (ver cada fase abajo)
 
 | Fase | Nombre | Horas | Estado |
@@ -14,13 +14,13 @@ Regla: no se empieza una fase sin cerrar la anterior aquí.
 | 3 | Ingresos | 30–40 | **Cerrada** (2026-09-25) |
 | 4 | Recibos | 16–22 | **Cerrada** (2026-09-25) |
 | 5 | Gastos | 28–36 | **Cerrada** (2026-09-25) |
-| 6 | Reportes y balance | 30–40 | Pendiente |
+| 6 | Reportes y balance | 30–40 | En curso — primer lote cerrado 2026-09-25 (4 reportes + balance real) |
 | 7 | PWA offline | 24–32 | Pendiente |
 | 8 | Puesta en producción | 20–30 | Pendiente |
 
 ## Diseño (previo a la Fase 0)
 - [x] Plan de desarrollo
-- [x] `docs/DECISIONES.md` (D-01 a D-22, pendientes P-03 a P-07)
+- [x] `docs/DECISIONES.md` (D-01 a D-24, pendientes P-03 a P-07)
 - [x] `docs/ESTADO.md`
 - [x] Diseño detallado de modelos: `core` y `academico` (aprobado)
 - [x] Diseño detallado de modelos: `cambio` (aprobado)
@@ -166,12 +166,19 @@ Regla: no se empieza una fase sin cerrar la anterior aquí.
 - [x] Validación con sandbox: `manage.py check`, `makemigrations --check --dry-run` (limpio), suite existente (`cambio`+`ingresos`, 15 tests, verde) y un script de 39 verificaciones nuevas cubriendo registro con 2 renglones, HTMX de renglón nuevo, restricción de fondo por responsable, documento duplicado, las dos confirmaciones de G-3, saldo negativo, saldo positivo real (aporte − gasto), edición bloqueada tras aprobar, anulación y los 5 catálogos nuevos
 - [ ] Pendiente de validar en producción con datos reales (concurrencia de aprobación, y que el saldo por fondo cuadre con la contabilidad real de la institución una vez haya movimiento)
 
-## Fase 6 — Reportes y balance
-- [ ] Motor de filtros compartido
-- [ ] Los once reportes
-- [ ] Exportación a Excel y PDF con encabezado
-- [ ] Tablero de balance con gráfico mensual
-- [ ] Índices y revisión de N+1
+## Fase 6 — Reportes y balance — EN CURSO (primer lote 2026-09-25)
+- [x] Motor de filtros compartido (`reportes/services.py`): rango de fechas (`?desde=&hasta=`, por defecto últimos 30 días), fondo bloqueado a su propio fondo para `responsable_fondo` (`fondo_bloqueado_para()`, mismo criterio que `GastoForm`), reutilizable por cualquier reporte nuevo
+- [x] Nueva app `reportes` (ya estaba creada vacía desde antes; sin modelos propios — todo se calcula al vuelo sobre `Aporte`/`Gasto`/`DetalleGasto`, no hace falta migración)
+- [x] Reporte: **ingresos por estudiante/sección/grado**, filtrable por rango de fechas, grado y sección, con opción "solo verificados" (por defecto sí) — `/reportes/ingresos/`
+- [x] Reporte: **gastos por categoría/producto** (D-23), filtrable por rango de fechas, fondo, categoría y producto, agrupado por categoría con subtotales — `/reportes/gastos/`
+- [x] Reporte: **balance por fondo**, saldo actual (reutiliza `gastos.services.saldo_fondo()`) + gráfico de evolución mensual (Chart.js vía CDN, ingresos verificados vs. gastos aprobados por mes) — `/reportes/balance/`
+- [x] Reporte: **estado de cuenta por estudiante**, buscador (nombre/apellido/cédula escolar) + historial completo de aportes (excluye anulados) + total verificado — `/reportes/estudiante/`
+- [x] Exportación a Excel (`openpyxl`, ya estaba en `requirements.txt`) en los cuatro reportes vía `?formato=xlsx` sobre la misma URL filtrada — sin dependencias nuevas
+- [x] **Balance real del dashboard** (hueco documentado desde la Fase 2, D-24): `core/views.py:inicio` ya no muestra `Bs. 0,00` fijo — suma `saldo_fondo()` de todos los fondos, en Bs. y en USD por separado (sin reconvertir con la tasa de hoy, mismo criterio que D-02)
+- [x] Acceso restringido a los mismos roles que ya veían el balance (`administrador`, `responsable_fondo`, `director`, `auditor`); nueva sección "Reportes" en el menú lateral y acceso rápido en el dashboard
+- [x] Validado en sandbox: `manage.py check`, `makemigrations --check --dry-run` (sin cambios), la suite existente (`cambio`+`ingresos`, 15 tests) sigue en verde, y un script de 25 verificaciones nuevas con el `Client` de pruebas — los cuatro reportes y sus filtros, exportación a Excel (content-type correcto), balance real del dashboard, bloqueo de fondo para `responsable_fondo` (no se puede forzar otro fondo por la URL), y 403 para el docente
+- [ ] **Pendiente, fuera de este primer lote** (D-24): los demás reportes que Darwin no marcó como prioritarios ahora (se agregan cuando haga falta, reutilizando el mismo motor de filtros); exportación a **PDF** con encabezado (Excel ya quedó listo, PDF no se construyó todavía — necesitaría una librería nueva tipo `weasyprint`, evaluar cuando se necesite de verdad); una revisión de índices/N+1 dedicada más allá de las consultas ya agregadas con `.values()/.annotate()`
+- [ ] Pendiente de validar en el navegador contra Neon (este entorno solo prueba contra SQLite, mismo patrón que las fases anteriores) — en particular el gráfico de Chart.js y la exportación a Excel abriendo el archivo descargado
 
 ## Fase 7 — PWA offline
 - [ ] Cola IndexedDB con `uuid` de cliente

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block titulo %}Balance por fondo — Edumia{% endblock %}
+{% block titulo_topbar %}Balance por fondo{% endblock %}
+{% block contenido %}
+
+<h1 class="h3 mb-1">Balance por fondo</h1>
+<p class="text-muted mb-4">Saldo acumulado (D-22) y evolución mensual entre {{ desde }} y {{ hasta }}.</p>
+
+<div class="card card-edumia mb-4">
+  <div class="card-body">
+    <form method="get" class="row g-3 align-items-end">
+      <div class="col-sm-4">
+        <label class="form-label small fw-semibold">Desde</label>
+        {{ form.desde }}
+      </div>
+      <div class="col-sm-4">
+        <label class="form-label small fw-semibold">Hasta</label>
+        {{ form.hasta }}
+      </div>
+      <div class="col-sm-4">
+        <label class="form-label small fw-semibold">Fondo</label>
+        {{ form.fondo }}
+      </div>
+      <div class="col-12">
+        <button type="submit" class="btn btn-edumia-primary btn-sm"><i class="bi bi-funnel"></i> Filtrar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  {% for fila in saldos %}
+  <div class="col-sm-6 col-lg-4">
+    <div class="stat-tile">
+      <span class="stat-icon stat-icon-teal"><i class="bi bi-wallet-fill"></i></span>
+      <div>
+        <div class="stat-value" style="font-size:1.1rem;">Bs. {{ fila.saldo_ves }}</div>
+        <div class="stat-value" style="font-size:0.95rem;">$ {{ fila.saldo_usd }}</div>
+        <div class="stat-label">{{ fila.fondo }}</div>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12">
+    <div class="empty-state"><i class="bi bi-wallet d-block mb-2"></i>No hay fondos configurados.</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card card-edumia">
+  <div class="card-header bg-white fw-semibold">Evolución mensual (Bs.)</div>
+  <div class="card-body">
+    {% if serie_mensual %}
+    <canvas id="grafico-balance" height="90"></canvas>
+    {% else %}
+    <div class="empty-state"><i class="bi bi-graph-up d-block mb-2"></i>No hay movimientos en ese rango.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if serie_mensual %}
+{{ serie_json|json_script:"serie-datos" }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  const datos = JSON.parse(document.getElementById("serie-datos").textContent);
+  const ctx = document.getElementById("grafico-balance");
+  new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: datos.map((d) => d.mes),
+      datasets: [
+        { label: "Ingresos (Bs.)", data: datos.map((d) => d.ingresos_ves), backgroundColor: "#1aa18a" },
+        { label: "Gastos (Bs.)", data: datos.map((d) => d.gastos_ves), backgroundColor: "#f9b23b" },
+      ],
+    },
+    options: { responsive: true, scales: { y: { beginAtZero: true } } },
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

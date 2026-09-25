@@ -75,6 +75,13 @@
         </a>
         {% endif %}
 
+        {% if user.is_superuser or user.perfilusuario.rol == "administrador" or user.perfilusuario.rol == "responsable_fondo" or user.perfilusuario.rol == "director" or user.perfilusuario.rol == "auditor" %}
+        <div class="edumia-nav-heading">Reportes</div>
+        <a class="nav-link {% if 'reportes' in request.resolver_match.namespace|default:'' %}active{% endif %}" href="{% url 'reportes:inicio' %}">
+          <i class="bi bi-bar-chart-fill"></i> Reportes y balance
+        </a>
+        {% endif %}
+
         {% if user.is_superuser or user.perfilusuario.rol == "administrador" %}
         <div class="edumia-nav-heading">Administración</div>
         {% if user.is_superuser or user.perfilusuario.rol == "administrador" %}

@@ -10,9 +10,11 @@ from django.utils import timezone
 from django.views.generic import CreateView, ListView, UpdateView
 
 from academico.models import Estudiante, Grado, Representante, Seccion
-from cambio.services import SinTasaError, convertir, formatear, obtener_tasa
+from cambio.services import SinTasaError, formatear, obtener_tasa
 from core.mixins import RolRequeridoMixin, requiere_rol
 from core.models import Institucion, PeriodoEscolar
+from gastos.models import Fondo
+from gastos.services import saldo_fondo
 
 from .forms import GradoForm, InstitucionForm, PeriodoEscolarForm, SeccionForm
 
@@ -78,20 +80,25 @@ def inicio(request):
     puede_registrar_gastos = request.user.is_superuser or rol in ROLES_REGISTRO_GASTOS
     puede_configurar = request.user.is_superuser or rol in ROLES_CONFIGURACION
 
-    # Todavía no existen los modelos de Ingreso/Gasto (Fase 3 y 5): el
-    # balance en bolívares se deja en cero, listo para calcularse de verdad
-    # apenas esos módulos entren en producción. Aun así, si hay una tasa de
-    # cambio cargada, se puede mostrar el equivalente en USD (botón de
-    # cambio de moneda en el dashboard).
+    # Fase 6: balance real, sumando el saldo de cada fondo (Σ aportes
+    # verificados − Σ gastos aprobados). Bs. y USD se suman cada uno por su
+    # lado (gastos.services.saldo_fondo) y NO se convierten entre sí: cada
+    # transacción ya trae su propia tasa congelada, así que reconvertir el
+    # total con la tasa de hoy lo descuadraría del papel. La tasa vigente
+    # solo se muestra como referencia junto al botón "Ver en USD".
     balance_ves = Decimal("0")
+    balance_usd_total = Decimal("0")
     tasa_activa = None
     tasa_es_exacta = False
     balance_usd = None
     if puede_ver_finanzas:
+        for fondo in Fondo.objects.all():
+            ves, usd = saldo_fondo(fondo)
+            balance_ves += ves
+            balance_usd_total += usd
+        balance_usd = formatear(balance_usd_total)
         try:
             tasa_activa, tasa_es_exacta = obtener_tasa(timezone.localdate())
-            _, monto_usd = convertir(balance_ves, "VES", tasa_activa.valor)
-            balance_usd = formatear(monto_usd)
         except SinTasaError:
             tasa_activa = None
 
