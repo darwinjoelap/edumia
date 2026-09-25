@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block titulo %}Relación de gastos institucionales — Edumia{% endblock %}
+{% block titulo_topbar %}Relación de gastos institucionales{% endblock %}
+{% block contenido %}
+
+<h1 class="h3 mb-1">Relación de gastos institucionales</h1>
+<p class="text-muted mb-4">Documento en PDF con el encabezado de la institución: ingresos por concepto y egresos desglosados por fondo, del {{ desde }} al {{ hasta }}.</p>
+
+<div class="card card-edumia" style="max-width: 560px;">
+  <div class="card-body">
+    <form method="get" class="row g-3 align-items-end">
+      <div class="col-sm-6">
+        <label class="form-label small fw-semibold">Desde</label>
+        {{ form.desde }}
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label small fw-semibold">Hasta</label>
+        {{ form.hasta }}
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label small fw-semibold">Fondo</label>
+        {{ form.fondo }}
+        <div class="form-text">Vacío = todos los fondos, cada uno en su propia columna.</div>
+      </div>
+      <div class="col-12 d-flex gap-2">
+        <button type="submit" class="btn btn-outline-secondary btn-sm"><i class="bi bi-funnel"></i> Actualizar rango</button>
+        <a href="?{{ request.GET.urlencode }}&formato=pdf" class="btn btn-edumia-primary btn-sm">
+          <i class="bi bi-file-earmark-pdf"></i> Descargar PDF
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

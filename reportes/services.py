@@ -9,7 +9,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from django.db.models import Count, Q, Sum
-from django.db.models.functions import TruncMonth
+from django.db.models.functions import Coalesce, TruncMonth
 
 from gastos.models import DetalleGasto, Fondo, Gasto
 from gastos.services import saldo_fondo
@@ -180,6 +180,46 @@ def evolucion_mensual(desde, hasta, fondo=None):
             "gastos_usd": gasto.get("usd") or CERO,
         })
     return resultado
+
+
+# --- Relación de gastos institucionales (PDF) --------------------------------
+
+def ingresos_por_concepto(desde, hasta, fondo=None):
+    """Ingresos verificados agrupados por concepto (o `concepto_libre` cuando
+    no viene del catálogo), para la tabla "Disponibilidad e Ingresos" del PDF."""
+    qs = Aporte.objects.filter(estado=Aporte.Estado.VERIFICADO, fecha_pago__gte=desde, fecha_pago__lte=hasta)
+    if fondo:
+        qs = qs.filter(fondo=fondo)
+    filas = (
+        qs.annotate(etiqueta=Coalesce("concepto__nombre", "concepto_libre"))
+        .values("etiqueta")
+        .annotate(total_ves=Sum("monto_ves"))
+        .order_by("etiqueta")
+    )
+    total = qs.aggregate(total_ves=Sum("monto_ves"))["total_ves"] or CERO
+    return list(filas), total
+
+
+def gastos_por_fondo_desglose(desde, hasta, fondo=None):
+    """Gastos aprobados agrupados por fondo y, dentro de cada fondo, por
+    producto (o descripción libre) — una columna por fondo en el PDF.
+    Devuelve un dict ordenado {nombre_fondo: [(etiqueta, total_ves), ...]}."""
+    qs = DetalleGasto.objects.filter(
+        gasto__estado=Gasto.Estado.APROBADO, gasto__fecha__gte=desde, gasto__fecha__lte=hasta,
+    )
+    if fondo:
+        qs = qs.filter(gasto__fondo=fondo)
+    filas = (
+        qs.annotate(etiqueta=Coalesce("producto__nombre", "descripcion"))
+        .values("gasto__fondo__nombre", "etiqueta")
+        .annotate(total_ves=Sum("subtotal_ves"))
+        .order_by("gasto__fondo__nombre", "etiqueta")
+    )
+    por_fondo = {}
+    for fila in filas:
+        nombre = fila["gasto__fondo__nombre"]
+        por_fondo.setdefault(nombre, []).append((fila["etiqueta"], fila["total_ves"] or CERO))
+    return por_fondo
 
 
 # --- Reporte: estado de cuenta por estudiante --------------------------------

@@ -4,9 +4,10 @@ from django.shortcuts import get_object_or_404, render
 
 from academico.models import Estudiante
 from core.mixins import requiere_rol
+from core.models import Institucion, PeriodoEscolar
 from gastos.models import Fondo
 
-from . import services
+from . import pdf, services
 from .forms import BuscarEstudianteForm, FiltroBalanceForm, FiltroGastosForm, FiltroIngresosForm
 
 # Roles que ven los reportes financieros: los mismos que ven el balance en
@@ -154,6 +155,41 @@ def balance(request):
             for s in serie_mensual
         ],
     })
+
+
+@login_required
+@requiere_rol(*ROLES_REPORTES)
+def relacion_gastos_pdf(request):
+    """Relación de gastos institucionales en PDF: ingresos por concepto +
+    egresos por fondo, con el formato en papel que ya usaba la institución
+    (pedido explícito de Darwin, con una foto de ejemplo)."""
+    form = FiltroBalanceForm(request.GET or None, usuario=request.user)
+    desde, hasta = services.parsear_rango(request)
+    fondo = None
+    fondo_fijo = services.fondo_bloqueado_para(request.user)
+    if form.is_valid():
+        desde = form.cleaned_data["desde"] or desde
+        hasta = form.cleaned_data["hasta"] or hasta
+        fondo = fondo_fijo or form.cleaned_data["fondo"]
+    elif fondo_fijo:
+        fondo = fondo_fijo
+
+    if request.GET.get("formato") != "pdf":
+        return render(request, "reportes/relacion_gastos.html", {
+            "form": form, "desde": desde, "hasta": hasta,
+        })
+
+    institucion = Institucion.obtener()
+    periodo = PeriodoEscolar.objects.filter(activo=True).first()
+    ingresos_filas, total_ingresos = services.ingresos_por_concepto(desde, hasta, fondo)
+    egresos_por_fondo = services.gastos_por_fondo_desglose(desde, hasta, fondo)
+
+    buffer = pdf.construir_relacion_gastos_pdf(
+        institucion, periodo, desde, hasta, ingresos_filas, total_ingresos, egresos_por_fondo,
+    )
+    respuesta = HttpResponse(buffer.getvalue(), content_type="application/pdf")
+    respuesta["Content-Disposition"] = f'attachment; filename="relacion_gastos_{desde}_{hasta}.pdf"'
+    return respuesta
 
 
 @login_required

@@ -179,6 +179,16 @@ Formato: una entrada por decisión. Estado: **Cerrada** o **Pendiente**.
 - **Queda pendiente, explícitamente fuera de este primer lote** (ver `docs/ESTADO.md`, Fase 6): los reportes restantes que Darwin no marcó como prioritarios ahora, exportación a PDF con encabezado (Excel sí quedó listo), y una revisión de índices/N+1 dedicada más allá de las consultas ya agregadas con `.values()/.annotate()` que se usaron en este lote.
 - Validado en sandbox: `manage.py check`, `makemigrations --check --dry-run` (sin cambios — esta app no tiene modelos propios), la suite existente (`cambio`+`ingresos`, 15 tests, verde) y un script de 25 verificaciones nuevas con el `Client` de pruebas cubriendo los cuatro reportes, sus filtros, la exportación a Excel (content-type correcto), el balance real del dashboard, el bloqueo de fondo para `responsable_fondo`, y que el docente reciba 403.
 
+## D-25 — PDF "Relación de gastos institucionales", con el formato en papel de la institución
+- Estado: Cerrada (2026-09-25)
+- Origen: Darwin mandó una foto de un documento en papel que ya usaba la institución (encabezado con escudo/nombre, tabla de "Disponibilidad e Ingresos" y "Desglose de Egresos" con una columna por fondo) y pidió reproducir ese formato en PDF.
+- Se agregó `reportlab==5.0.1` a `requirements.txt` (wheel puro Python, `py3-none-any` — sin dependencias binarias que compilar, a diferencia de `weasyprint`, que en Windows necesita GTK/Cairo/Pango instalados aparte; se descartó por eso).
+- Nuevo documento en `/reportes/gastos/relacion-pdf/?formato=pdf` (`reportes/pdf.py`): encabezado con "República Bolivariana de Venezuela" / "Ministerio del Poder Popular para la Educación" / nombre de la institución (con el logo si existe `static/img/logo.png`), año escolar (período activo), rango de fechas, tabla de ingresos verificados agrupados por concepto con total, y el desglose de gastos aprobados en una columna por fondo (máximo 3 columnas por fila; si hay más fondos, se sigue en la fila de abajo).
+- Los montos del PDF se formatean `1,234.56` (coma de miles, punto decimal) **a propósito**, distinto del formato es-VE (`1.234,56`) que usa el resto de Edumia — es para que el documento coincida exactamente con el que ya conocía la institución, no con la convención interna de la app.
+- Filtrable por rango de fechas y por fondo (vacío = todos los fondos, cada uno en su columna); `responsable_fondo` tiene el fondo bloqueado al suyo, igual que en Balance y Gastos por categoría (D-24).
+- Validado en sandbox con un caso que reproduce los números exactos de la foto de Darwin (Bs. 622,321.00 de total de ingresos) y extrayendo el texto del PDF generado (`pypdf`) para confirmar que trae el nombre de la institución, el título, los conceptos de ingreso, las columnas por fondo y los productos/descripciones — 18 verificaciones, todas en verde. También se renderizó a imagen (`pdftoppm`) para revisión visual antes de entregarlo.
+- Sigue pendiente (no se hizo en este lote, ver `docs/ESTADO.md`): exportar a PDF los otros tres reportes de la Fase 6 (Ingresos por estudiante, Gastos por categoría, Balance) — Darwin pidió "los reportes" en plural, pero el ejemplo concreto que mandó era este documento de gastos, así que se priorizó ese primero.
+
 ---
 
 ## Pendientes (sin respuesta aún)
