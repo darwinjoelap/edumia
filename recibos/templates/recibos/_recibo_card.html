@@ -1,0 +1,79 @@
+{% load static %}
+<div class="recibo-card{% if recibo.anulado %} recibo-card--anulado{% endif %}" id="recibo-card">
+  {% if recibo.anulado %}<div class="recibo-sello">ANULADO</div>{% endif %}
+
+  <div class="recibo-header">
+    <img src="{% static 'img/logo.png' %}" alt="" class="recibo-logo">
+    <div class="recibo-header-texto">
+      <p class="recibo-institucion">{{ institucion.nombre }}</p>
+      <p class="recibo-rif">RIF: {{ institucion.rif }}</p>
+      <p class="recibo-tagline">Comprobante de ingreso</p>
+    </div>
+    <div class="recibo-numero">
+      <span class="recibo-numero-label">Recibo N.º</span>
+      <span class="recibo-numero-valor">{{ recibo.numero_texto }}</span>
+    </div>
+  </div>
+
+  <div class="recibo-cuerpo">
+    <div class="recibo-monto-bloque">
+      <span class="recibo-monto-label">Monto recibido</span>
+      <span class="recibo-monto-valor">{{ monto_principal }}</span>
+      <span class="recibo-monto-equivalente">{{ monto_equivalente }}</span>
+    </div>
+
+    <div class="recibo-concepto-bloque">
+      <span class="recibo-etiqueta">Concepto</span>
+      <p class="recibo-concepto">{{ recibo.concepto_texto|default:"—" }}</p>
+      {% if aporte.mes_cubierto %}
+        <p class="recibo-detalle-fila">Período que cubre: <strong>{{ aporte.mes_cubierto|date:"F Y" }}</strong></p>
+      {% endif %}
+    </div>
+
+    <div class="recibo-grid">
+      <div>
+        <span class="recibo-etiqueta">Fecha de pago</span>
+        <p>{{ aporte.fecha_pago|date:"d/m/Y" }}</p>
+      </div>
+      <div>
+        <span class="recibo-etiqueta">Forma de pago</span>
+        <p>{{ aporte.forma_pago }}</p>
+      </div>
+      <div class="recibo-grid-ancho">
+        <span class="recibo-etiqueta">Recibido de</span>
+        <p>{{ recibo.entregado_por_texto|default:"—" }}</p>
+      </div>
+      {% if recibo.estudiante_texto %}
+        <div>
+          <span class="recibo-etiqueta">Estudiante</span>
+          <p>{{ recibo.estudiante_texto }}</p>
+        </div>
+        <div>
+          <span class="recibo-etiqueta">Sección</span>
+          <p>{{ recibo.seccion_texto }}{% if recibo.docente_texto %} · {{ recibo.docente_texto }}{% endif %}</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="recibo-footer">
+    {% if qr_base64 %}
+      <div class="recibo-qr">
+        <img src="data:image/png;base64,{{ qr_base64 }}" alt="Código QR de verificación">
+        <p>Escanea para verificar</p>
+      </div>
+    {% endif %}
+    <div class="recibo-footer-texto">
+      <p>
+        Emitido el {{ recibo.fecha_emision|date:"d/m/Y H:i" }}
+        {% if not es_publico %} por {{ recibo.emitido_por.get_full_name|default:recibo.emitido_por.get_username }}{% endif %}
+      </p>
+      <p>
+        {{ institucion.direccion }}{% if institucion.telefono %} · Tel. {{ institucion.telefono }}{% endif %}
+      </p>
+      <p class="recibo-marca">
+        Edumia — comprobante {% if recibo.anulado %}ANULADO{% else %}vigente{% endif %}
+      </p>
+    </div>
+  </div>
+</div>

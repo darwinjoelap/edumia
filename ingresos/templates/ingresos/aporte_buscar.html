@@ -22,7 +22,7 @@
       <thead>
         <tr>
           <th>Concepto</th><th>Estudiante / origen</th><th>Monto</th><th>Referencia</th>
-          <th>Cédula</th><th>Teléfono</th><th>Fecha de pago</th><th>Estado</th>
+          <th>Cédula</th><th>Teléfono</th><th>Fecha de pago</th><th>Estado</th><th>Recibo</th>
         </tr>
       </thead>
       <tbody>
@@ -39,6 +39,15 @@
           <td>{{ aporte.fecha_pago }}</td>
           <td>
             <span class="badge text-bg-secondary">{{ aporte.get_estado_display }}</span>
+          </td>
+          <td>
+            {% if aporte.recibo %}
+              <a href="{% url 'recibos:recibo_detalle' aporte.recibo.pk %}" class="btn btn-sm btn-outline-primary">
+                {{ aporte.recibo.numero_texto }}
+              </a>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
           </td>
         </tr>
       {% endfor %}

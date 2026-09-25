@@ -13,6 +13,7 @@ urlpatterns = [
     path("academico/", include("academico.urls")),
     path("ingresos/", include("ingresos.urls")),
     path("cambio/", include("cambio.urls")),
+    path("recibos/", include("recibos.urls")),
     path("", include("core.urls")),
     path("", core_views.inicio, name="inicio"),
 ]

@@ -137,6 +137,14 @@ Formato: una entrada por decisión. Estado: **Cerrada** o **Pendiente**.
 - Se construye ya en la Fase 1, sin restricción de rol todavía (exige solo estar logueado como staff). En la Fase 2, cuando lleguen `PerfilUsuario` y los mixins de permisos (`SeccionDocenteMixin`, ya diseñado en `MODELOS_core_academico.md`), se agrega el filtro "solo mi sección" sin reescribir la vista.
 - La importación desde Excel/CSV del plan original sigue construyéndose en la Fase 1 (formato genérico, con datos de prueba), pero deja de ser la única vía de carga masiva: la alta rápida por sección cubre el caso sin archivo.
 
+## D-21 — Recibo pensado para compartirse como imagen, no solo para imprimir (Fase 4)
+- Estado: Cerrada (2026-09-25)
+- Origen: Darwin pidió explícitamente que el recibo sea "atractivo" y que se pueda compartir como imagen (ej. WhatsApp) para ahorrar papel, además de la impresión en media carta del diseño original.
+- Un solo diseño (`recibos/templates/recibos/_recibo_card.html` + `static/css/recibo.css`) sirve para los tres destinos: pantalla, impresión (`@media print`, tamaño media carta 5.5"×8.5") y descarga como imagen — no hay una plantilla "bonita" y otra "para imprimir" por separado.
+- La imagen se genera en el navegador (`html2canvas`, botón "Descargar como imagen"), no en el servidor: más simple de mantener y no depende de una librería de renderizado de imágenes en el backend. El QR de verificación se incrusta como `data:image/png;base64,...` (generado con `qrcode`/Pillow en el servidor) precisamente para que `html2canvas` lo capture sin problemas de CORS.
+- El recibo público (`/recibos/verificar/<uuid>/`) usa el mismo diseño y también puede descargarse como imagen: quien recibe el enlace del QR puede guardarlo, no solo verlo.
+- Nuevas dependencias en `requirements.txt`: `qrcode` y `pillow` (esta última solo la usa `qrcode` para generar el PNG).
+
 ---
 
 ## Pendientes (sin respuesta aún)

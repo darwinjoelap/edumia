@@ -1,13 +1,14 @@
 """Modelos de ingresos (Fase 3). Diseño aprobado en docs/MODELOS_cambio_ingresos.md.
 
-`SerieRecibo` y `Recibo` NO viven aquí: son de la Fase 4 (Recibos), todavía
-no se construyen. Por ahora un `Aporte` puede llegar hasta "verificado" sin
-que se emita ningún comprobante impreso; eso se conecta cuando exista Recibo.
+`SerieRecibo` y `Recibo` viven en la app `recibos` (Fase 4). `Aporte` no la
+importa a nivel de módulo (evitaría un ciclo: `recibos.models.Recibo`
+referencia `ingresos.Aporte`) — `transicionar()` importa `recibos.services`
+de forma diferida, solo cuando hace falta emitir o anular un recibo.
 """
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q
 from django.utils import timezone
 from simple_history.models import HistoricalRecords
@@ -390,7 +391,11 @@ class Aporte(MontoBimonedaMixin, models.Model):
     def transicionar(self, nuevo_estado, usuario, motivo=None):
         """Único método que cambia `estado`. Ninguna vista debe hacer
         `aporte.estado = ...` directamente: así queda un solo lugar que
-        conoce las transiciones válidas y sus efectos secundarios."""
+        conoce las transiciones válidas y sus efectos secundarios.
+
+        Pasar a «verificado» emite el recibo (Fase 4) en la misma
+        transacción (D-09); pasar a «anulado» anula el recibo si ya existía
+        uno. Ninguna de las dos cosas puede quedar a medias."""
         permitidas = self._TRANSICIONES.get(self.estado, set())
         if nuevo_estado not in permitidas:
             raise ValidationError(
@@ -399,29 +404,37 @@ class Aporte(MontoBimonedaMixin, models.Model):
 
         ahora = timezone.now()
 
-        if nuevo_estado == self.Estado.REGISTRADO:
-            if self.fecha_registro is None:
-                self.fecha_registro = ahora
-            self.full_clean()
+        with transaction.atomic():
+            if nuevo_estado == self.Estado.REGISTRADO:
+                if self.fecha_registro is None:
+                    self.fecha_registro = ahora
+                self.full_clean()
 
-        elif nuevo_estado == self.Estado.VERIFICADO:
-            self.verificado_por = usuario
-            self.fecha_verificacion = ahora
-            # La emisión del recibo (SerieRecibo/Recibo) llega en la Fase 4;
-            # por ahora "verificado" solo congela el aporte (D-09).
+            elif nuevo_estado == self.Estado.VERIFICADO:
+                self.verificado_por = usuario
+                self.fecha_verificacion = ahora
 
-        elif nuevo_estado == self.Estado.OBSERVADO:
-            if not motivo:
-                raise ValidationError("La observación es obligatoria para marcar un aporte como observado.")
-            self.observacion = motivo
+            elif nuevo_estado == self.Estado.OBSERVADO:
+                if not motivo:
+                    raise ValidationError("La observación es obligatoria para marcar un aporte como observado.")
+                self.observacion = motivo
 
-        elif nuevo_estado == self.Estado.ANULADO:
-            if not motivo:
-                raise ValidationError("El motivo de anulación es obligatorio.")
-            self.motivo_anulacion = motivo
-            self.anulado_por = usuario
-            self.fecha_anulacion = ahora
-            # Cuando exista Recibo (Fase 4), aquí también se anula el recibo asociado.
+            elif nuevo_estado == self.Estado.ANULADO:
+                if not motivo:
+                    raise ValidationError("El motivo de anulación es obligatorio.")
+                self.motivo_anulacion = motivo
+                self.anulado_por = usuario
+                self.fecha_anulacion = ahora
 
-        self.estado = nuevo_estado
-        self.save()
+            self.estado = nuevo_estado
+            self.save()
+
+            if nuevo_estado == self.Estado.VERIFICADO:
+                from recibos.services import emitir_recibo
+
+                emitir_recibo(self, usuario)
+
+            elif nuevo_estado == self.Estado.ANULADO:
+                from recibos.services import anular_recibo
+
+                anular_recibo(self, usuario, motivo)

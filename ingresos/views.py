@@ -4,8 +4,9 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
+from django.utils.html import format_html
 from django.views.generic import CreateView, ListView, UpdateView
 
 from academico.models import Inscripcion, Seccion
@@ -101,7 +102,7 @@ def aporte_buscar(request):
             Aporte.objects.filter(
                 Q(referencia=referencia) | Q(cedula_titular=cedula) | Q(telefono_emisor=telefono)
             )
-            .select_related("concepto", "inscripcion__estudiante", "registrado_por")
+            .select_related("concepto", "inscripcion__estudiante", "registrado_por", "recibo")
             .order_by("-creado_en")
         )
     return render(request, "ingresos/aporte_buscar.html", {"query": query, "aportes": aportes})
@@ -200,7 +201,14 @@ def aporte_verificar(request, pk):
     if request.method == "POST":
         try:
             aporte.transicionar(Aporte.Estado.VERIFICADO, request.user)
-            messages.success(request, f"Aporte «{aporte}» verificado.")
+            recibo = getattr(aporte, "recibo", None)
+            if recibo is not None:
+                messages.success(request, format_html(
+                    'Aporte «{}» verificado. Recibo <a href="{}">{}</a> emitido.',
+                    aporte, reverse("recibos:recibo_detalle", args=[recibo.pk]), recibo.numero_texto,
+                ))
+            else:
+                messages.success(request, f"Aporte «{aporte}» verificado.")
         except ValidationError as e:
             messages.error(request, " ".join(e.messages))
     return redirect("ingresos:aporte_bandeja")

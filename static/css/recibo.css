@@ -1,0 +1,312 @@
+/* =========================================================================
+   Edumia — recibo de ingreso (Fase 4)
+   Pensado para tres destinos con el MISMO diseño: pantalla, impresión en
+   media carta y descarga como imagen (para compartir por WhatsApp, etc).
+   Usa las variables de edumia.css — cargar ese archivo primero.
+   ========================================================================= */
+
+.recibo-envoltorio {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 2rem 1rem 3rem;
+  background: var(--edumia-bg);
+}
+
+.recibo-card {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  background: var(--edumia-surface);
+  border-radius: var(--edumia-radius-lg);
+  box-shadow: var(--edumia-shadow-lg);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.recibo-header {
+  background: var(--edumia-gradient-brand);
+  color: #fff;
+  padding: 1.5rem 1.5rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.recibo-logo {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  object-fit: contain;
+  padding: 5px;
+  flex-shrink: 0;
+}
+
+.recibo-header-texto {
+  flex: 1;
+  min-width: 0;
+}
+
+.recibo-institucion {
+  font-weight: 700;
+  font-size: 1.02rem;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.recibo-rif {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  opacity: 0.85;
+}
+
+.recibo-tagline {
+  margin: 0.35rem 0 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.recibo-numero {
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--edumia-radius-sm);
+  padding: 0.45rem 0.7rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.recibo-numero-label {
+  display: block;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.85;
+}
+
+.recibo-numero-valor {
+  display: block;
+  font-weight: 700;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.recibo-cuerpo {
+  padding: 1.5rem;
+}
+
+.recibo-monto-bloque {
+  text-align: center;
+  padding: 0.75rem 0 1.25rem;
+  border-bottom: 1px dashed var(--edumia-border);
+  margin-bottom: 1.25rem;
+}
+
+.recibo-monto-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--edumia-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.recibo-monto-valor {
+  display: block;
+  font-size: 2.1rem;
+  font-weight: 800;
+  color: var(--edumia-primary-dark);
+  line-height: 1.25;
+}
+
+.recibo-monto-equivalente {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--edumia-secondary);
+  font-weight: 600;
+}
+
+.recibo-etiqueta {
+  display: block;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--edumia-text-muted);
+  margin-bottom: 0.1rem;
+}
+
+.recibo-concepto-bloque {
+  margin-bottom: 1.1rem;
+}
+
+.recibo-concepto {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--edumia-secondary);
+}
+
+.recibo-detalle-fila {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: var(--edumia-text);
+}
+
+.recibo-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem 1rem;
+  font-size: 0.88rem;
+}
+
+.recibo-grid p {
+  margin: 0;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.recibo-grid .recibo-grid-ancho {
+  grid-column: 1 / -1;
+}
+
+.recibo-footer {
+  background: var(--edumia-bg);
+  border-top: 1px solid var(--edumia-border);
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.recibo-qr {
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.recibo-qr img {
+  width: 76px;
+  height: 76px;
+  border-radius: var(--edumia-radius-sm);
+  border: 1px solid var(--edumia-border);
+  background: #fff;
+  padding: 4px;
+}
+
+.recibo-qr p {
+  margin: 0.3rem 0 0;
+  font-size: 0.62rem;
+  color: var(--edumia-text-muted);
+  max-width: 90px;
+}
+
+.recibo-footer-texto p {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--edumia-text-muted);
+  line-height: 1.4;
+}
+
+.recibo-marca {
+  margin-top: 0.35rem !important;
+  font-weight: 700;
+  color: var(--edumia-primary) !important;
+}
+
+.recibo-card--anulado .recibo-marca {
+  color: var(--edumia-danger) !important;
+}
+
+/* --- Sello diagonal de anulado ------------------------------------------ */
+.recibo-sello {
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-18deg);
+  font-size: 2.6rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--edumia-danger);
+  border: 6px solid var(--edumia-danger);
+  padding: 0.15rem 1rem;
+  border-radius: 0.6rem;
+  opacity: 0.4;
+  z-index: 5;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* --- Acciones (pantalla, no se imprimen ni se exportan) ----------------- */
+.recibo-acciones {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.recibo-volver {
+  font-size: 0.85rem;
+  color: var(--edumia-text-muted);
+}
+
+/* --- Verificación pública: encabezado propio (sin sidebar) -------------- */
+.recibo-publico-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--edumia-surface);
+  border: 1px solid var(--edumia-border);
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--edumia-secondary);
+  box-shadow: var(--edumia-shadow-sm);
+}
+
+/* --- Impresión: media carta ---------------------------------------------- */
+@media print {
+  @page {
+    size: 5.5in 8.5in;
+    margin: 8mm;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  .no-imprimir {
+    display: none !important;
+  }
+
+  .recibo-envoltorio {
+    padding: 0;
+    min-height: 0;
+  }
+
+  .recibo-card {
+    box-shadow: none;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .recibo-monto-valor {
+    font-size: 1.75rem;
+  }
+
+  .recibo-header {
+    padding: 1.25rem 1.1rem 1rem;
+  }
+
+  .recibo-cuerpo {
+    padding: 1.1rem;
+  }
+
+  .recibo-footer {
+    padding: 1rem 1.1rem;
+    flex-wrap: wrap;
+  }
+}

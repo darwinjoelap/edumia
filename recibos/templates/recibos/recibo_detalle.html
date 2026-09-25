@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load static %}
+{% block titulo %}Recibo {{ recibo.numero_texto }} — Edumia{% endblock %}
+{% block titulo_topbar %}Recibo{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/recibo.css' %}">
+{% endblock %}
+{% block contenido %}
+<div class="recibo-envoltorio" style="padding-top: 0;">
+
+  <div class="recibo-acciones no-imprimir mb-1">
+    <a href="{% url 'ingresos:aporte_buscar' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left"></i> Volver
+    </a>
+    <button type="button" class="btn btn-edumia-primary btn-sm" onclick="window.print()">
+      <i class="bi bi-printer"></i> Imprimir
+    </button>
+    <button type="button" id="btn-descargar-imagen" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-download"></i> Descargar como imagen
+    </button>
+  </div>
+
+  {% if recibo.anulado %}
+    <div class="alert alert-danger no-imprimir" style="max-width: 460px;">
+      Este recibo fue anulado{% if recibo.motivo_anulacion %}: {{ recibo.motivo_anulacion }}{% endif %}.
+    </div>
+  {% endif %}
+
+  {% include "recibos/_recibo_card.html" %}
+
+  <p class="recibo-volver no-imprimir mb-0">
+    Enlace público de verificación:<br>
+    <a href="{{ url_publica }}" target="_blank">{{ url_publica }}</a>
+  </p>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+(function () {
+  var boton = document.getElementById("btn-descargar-imagen");
+  if (!boton) return;
+  boton.addEventListener("click", function () {
+    var original = boton.innerHTML;
+    boton.disabled = true;
+    boton.innerHTML = "Generando…";
+    html2canvas(document.getElementById("recibo-card"), {
+      scale: 2,
+      backgroundColor: "#ffffff",
+      useCORS: true,
+    }).then(function (canvas) {
+      var enlace = document.createElement("a");
+      enlace.download = "recibo-{{ recibo.numero_texto }}.png";
+      enlace.href = canvas.toDataURL("image/png");
+      enlace.click();
+    }).catch(function () {
+      alert("No se pudo generar la imagen. Intenta de nuevo.");
+    }).finally(function () {
+      boton.disabled = false;
+      boton.innerHTML = original;
+    });
+  });
+})();
+</script>
+{% endblock %}

@@ -48,6 +48,7 @@ LOCAL_APPS = [
     "ingresos",
     "gastos",
     "cambio",
+    "recibos",
     "reportes",
 ]
 

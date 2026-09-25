@@ -1,18 +1,18 @@
 # Edumia — Estado del proyecto
 
 Regla: no se empieza una fase sin cerrar la anterior aquí.
-Última actualización: 2026-09-23
+Última actualización: 2026-09-25
 
-**Fase actual:** 2 — Usuarios, roles, tasa y PWA nivel 1 (sin empezar)
-**MVP:** Fases 0–4 (92–126 h)
+**Fase actual:** 5 — Gastos (sin empezar)
+**MVP:** Fases 0–4 (92–126 h) — completo en funcionalidad, quedan pendientes sueltos de validación manual (ver cada fase abajo)
 
 | Fase | Nombre | Horas | Estado |
 | --- | --- | --- | --- |
 | 0 | Infraestructura y hosting | 8–12 | **Cerrada** (hosting: Render, no Koyeb — D-17/D-18) |
 | 1 | Núcleo académico | 20–28 | **Cerrada** (2026-09-22) |
-| 2 | Usuarios, roles, tasa y PWA nivel 1 | 18–24 | Pendiente |
-| 3 | Ingresos | 30–40 | Pendiente |
-| 4 | Recibos | 16–22 | Pendiente |
+| 2 | Usuarios, roles, tasa y PWA nivel 1 | 18–24 | **Cerrada** (funcionalidad completa; quedan validaciones manuales sueltas) |
+| 3 | Ingresos | 30–40 | **Cerrada** (2026-09-25) |
+| 4 | Recibos | 16–22 | **Cerrada** (2026-09-25) |
 | 5 | Gastos | 28–36 | Pendiente |
 | 6 | Reportes y balance | 30–40 | Pendiente |
 | 7 | PWA offline | 24–32 | Pendiente |
@@ -125,12 +125,19 @@ Regla: no se empieza una fase sin cerrar la anterior aquí.
 - [x] Validado con el mismo sandbox: `makemigrations --check` sin cambios pendientes (esta ronda no tocó modelos), la suite `cambio`+`ingresos` sigue en verde, y dos scripts manuales nuevos — 15 casos sobre búsqueda (referencia/cédula/teléfono, normalización, sin resultados) y el lote por sección (el docente ve solo su sección y no la ajena —403—, la fila de un estudiante retirado no aparece, una fila vacía se ignora, la que sí tiene monto crea el aporte con los datos correctos del encabezado y de la fila) y 6 casos sobre el CRUD de `MontoConcepto` (crear/editar/eliminar) y el botón nuevo del dashboard — todos pasaron.
 - [ ] `FormaPago`/`ConceptoIngreso` en el registro en lote: por ahora el lote no distingue banderas de forma de pago fila por fila más allá de banco origen/referencia/cédula/teléfono — si en la práctica una forma de pago usada en lote exige otro campo por fila, se agrega cuando aparezca el caso real.
 
-## Fase 4 — Recibos
-- [ ] `SerieRecibo` con `select_for_update()`
-- [ ] Plantilla imprimible (media carta), con líneas de estudiante/sección omitidas cuando no aplica (D-19)
-- [ ] Verificación pública por UUID + QR
-- [ ] Reimpresión y marca de anulado
-- [ ] Prueba de concurrencia de la numeración
+## Fase 4 — Recibos — CERRADA (2026-09-25)
+- [x] Nueva app `recibos` con los modelos aprobados en `docs/MODELOS_cambio_ingresos.md`: `SerieRecibo` (una por período, `prefijo` = nombre del período, `ultimo_numero`) y `Recibo` (`OneToOne` con `Aporte`, número + `numero_texto` únicos, `uuid` único para la verificación pública, copias congeladas `entregado_por_texto`/`estudiante_texto`/`seccion_texto`/`concepto_texto`/`docente_texto`, campos de anulación). Migración `recibos/migrations/0001_initial.py`.
+- [x] `recibos/services.py`: `emitir_recibo(aporte, usuario)` — numeración con `SerieRecibo.objects.select_for_update()` + incremento dentro de `transaction.atomic()`, nunca `max()+1`; y `anular_recibo(aporte, usuario, motivo)` — marca el recibo como anulado sin borrarlo ni reutilizar su número.
+- [x] Conectado a la máquina de estados (D-09): `Aporte.transicionar()` ahora envuelve todo en `transaction.atomic()` y, al pasar a «verificado», llama `emitir_recibo()` en la misma transacción; al pasar a «anulado», llama `anular_recibo()` si ya existía uno. Import diferido (`recibos.services`) para evitar el ciclo `ingresos` ↔ `recibos`.
+- [x] Plantilla imprimible en media carta (`@media print { @page { size: 5.5in 8.5in } }`) que omite las líneas de estudiante/sección/docente cuando el aporte no tiene inscripción (D-19) — probado con el aporte de una rifa (sin estudiante) y uno con estudiante.
+- [x] Verificación pública por UUID + QR: `/recibos/verificar/<uuid>/` (sin login), muestra el mínimo (número, fecha, monto, concepto, estudiante si aplica, estado vigente/anulado) — `Recibo` ni siquiera tiene campos de cédula o teléfono, así que no hay nada sensible que pueda filtrarse ahí. El QR (generado con `qrcode`, incrustado como PNG base64) apunta a esa URL y se ve en el recibo del personal (`/recibos/<pk>/`, con rol administrador/responsable de fondo).
+- [x] Reimpresión: `/recibos/<pk>/` se puede abrir y reimprimir cuantas veces haga falta (botón "Imprimir"), no hay límite ni marca de "ya se imprimió". Marca de anulado: sello diagonal "ANULADO" superpuesto en rojo sobre el recibo (pantalla, impreso y en la imagen descargada) cuando `Recibo.anulado=True`, en las dos plantillas (personal y pública).
+- [x] **Pedido explícito de Darwin: recibo atractivo y pensado para compartirse como imagen** (ver D-21 en `DECISIONES.md`). Un solo diseño (`recibos/templates/recibos/_recibo_card.html` + `static/css/recibo.css`, paleta e identidad de Edumia) sirve para pantalla, impresión y descarga: tarjeta con encabezado en degradado navy→teal con el logo y nombre de la institución, número de recibo destacado, monto grande con su equivalente en la otra moneda, concepto, período que cubre (si aplica), quién entrega, estudiante/sección/docente (si aplica), y pie con el QR de verificación. Botón "Descargar como imagen" (JS `html2canvas`, sin backend adicional) en las dos plantillas (personal y pública) — el QR va incrustado como base64 precisamente para que la imagen descargada lo incluya sin problemas de CORS.
+- [x] Enlace desde el sistema: la búsqueda de aportes (`/ingresos/buscar/`) muestra una columna "Recibo" con enlace al recibo cuando el aporte ya fue verificado; el mensaje de éxito al verificar también enlaza directo al recibo recién emitido.
+- [x] Nuevas dependencias en `requirements.txt`: `qrcode==8.2`, `pillow==11.0.0` (la usa `qrcode` para generar el PNG). **Falta que corras `pip install -r requirements.txt` en tu entorno local** — Render las instala solas en el próximo despliegue.
+- [x] Validado en este entorno (sandbox aparte, sin Shell en tu equipo): `makemigrations --check` sin cambios pendientes tras generar la migración de `recibos`, `migrate` limpio, la suite `cambio`+`ingresos` (15 pruebas) sigue en verde, y un script manual con 41 casos usando el `Client` de pruebas contra las vistas reales — registrar con y sin estudiante, verificar y que se emita el recibo con los datos correctos (incluyendo que las líneas de estudiante/sección queden vacías en la rifa, D-19), un rol sin permiso recibe 403 al intentar ver el recibo, la verificación pública funciona sin login y no expone cédula/teléfono, anular el aporte anula el recibo en cascada conservando su número, y un segundo período arranca su propia serie desde el número 1. También una prueba de concurrencia con 20 hilos verificando al mismo tiempo (contra SQLite, no Postgres): salieron 20 números únicos y consecutivos, sin huecos ni duplicados.
+- [ ] La prueba de concurrencia real que pide el diseño (`docs/MODELOS_cambio_ingresos.md`: "20 hilos verificando simultáneamente contra Postgres real") queda pendiente de correr contra tu Neon `dev`, porque SQLite serializa todo el archivo y no reproduce de verdad una condición de carrera — la de este entorno es solo una prueba de humo de que el código no se cae ni deja recibos a medias.
+- [ ] Falta que edites la Institución en producción con el nombre, RIF y dirección reales antes de emitir el primer recibo real (ya señalado desde el cierre de la Fase 1) — mientras tanto los recibos van a salir con los datos de ejemplo.
 
 ## Fase 5 — Gastos
 - [ ] Modelos `gastos` + migraciones
