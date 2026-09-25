@@ -19,6 +19,11 @@
           <td>{{ unidad.abreviatura }}</td>
           <td class="text-end">
             <a href="{% url 'gastos:unidad_editar' unidad.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+            <form method="post" action="{% url 'gastos:unidad_eliminar' unidad.pk %}" class="d-inline"
+                  onsubmit="return confirm('¿Eliminar la unidad «{{ unidad }}»? Solo se puede si no tiene productos o renglones de gasto asociados.');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
           </td>
         </tr>
       {% endfor %}

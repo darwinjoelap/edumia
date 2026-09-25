@@ -45,6 +45,13 @@
               <button type="submit" class="btn btn-sm btn-outline-danger">Cerrar</button>
             </form>
             {% endif %}
+            {% if not periodo.activo %}
+            <form method="post" action="{% url 'core:periodo_eliminar' periodo.pk %}" class="d-inline"
+                  onsubmit="return confirm('¿Eliminar el período «{{ periodo }}»? Solo se puede si no tiene secciones, inscripciones, aportes ni gastos asociados.');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+            {% endif %}
           </td>
         </tr>
       {% endfor %}

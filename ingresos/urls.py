@@ -20,12 +20,14 @@ urlpatterns = [
         "configuracion/conceptos/<int:pk>/editar/",
         views.ConceptoIngresoUpdateView.as_view(), name="concepto_editar",
     ),
+    path("configuracion/conceptos/<int:pk>/eliminar/", views.concepto_eliminar, name="concepto_eliminar"),
     path("configuracion/formas-pago/", views.FormaPagoListView.as_view(), name="formapago_lista"),
     path("configuracion/formas-pago/nueva/", views.FormaPagoCreateView.as_view(), name="formapago_crear"),
     path(
         "configuracion/formas-pago/<int:pk>/editar/",
         views.FormaPagoUpdateView.as_view(), name="formapago_editar",
     ),
+    path("configuracion/formas-pago/<int:pk>/eliminar/", views.formapago_eliminar, name="formapago_eliminar"),
     path("configuracion/montos/", views.MontoConceptoListView.as_view(), name="montoconcepto_lista"),
     path("configuracion/montos/nuevo/", views.MontoConceptoCreateView.as_view(), name="montoconcepto_crear"),
     path(
@@ -39,4 +41,5 @@ urlpatterns = [
     path("configuracion/bancos/", views.BancoListView.as_view(), name="banco_lista"),
     path("configuracion/bancos/nuevo/", views.BancoCreateView.as_view(), name="banco_crear"),
     path("configuracion/bancos/<int:pk>/editar/", views.BancoUpdateView.as_view(), name="banco_editar"),
+    path("configuracion/bancos/<int:pk>/eliminar/", views.banco_eliminar, name="banco_eliminar"),
 ]

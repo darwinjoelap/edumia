@@ -30,6 +30,11 @@
             <a href="{% url 'ingresos:banco_editar' banco.pk %}" class="btn btn-sm btn-outline-secondary">
               <i class="bi bi-pencil"></i>
             </a>
+            <form method="post" action="{% url 'ingresos:banco_eliminar' banco.pk %}" class="d-inline"
+                  onsubmit="return confirm('¿Eliminar el banco «{{ banco }}»? Solo se puede si no tiene aportes asociados.');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
           </td>
         </tr>
       {% endfor %}

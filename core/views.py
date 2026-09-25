@@ -28,6 +28,7 @@ from .forms import (
     UsuarioCreateForm,
     UsuarioUpdateForm,
 )
+from .utils import eliminar_protegido
 
 # Roles que manejan dinero (todos menos docente): ven el balance y los
 # accesos de ingreso/gasto en el dashboard.
@@ -253,6 +254,21 @@ class PeriodoUpdateView(RolRequeridoMixin, UpdateView):
 
 
 @requiere_rol(*ROLES_CONFIGURACION)
+def periodo_eliminar(request, pk):
+    """Fase 8 (D-33): un período con secciones, inscripciones, aportes o
+    gastos (todos PROTECT hacia PeriodoEscolar) no se puede borrar — el
+    mensaje de `eliminar_protegido` lo explica. Nunca se puede borrar el
+    período activo (D-?): si hiciera falta, primero hay que activar otro."""
+    periodo = get_object_or_404(PeriodoEscolar, pk=pk)
+    if request.method == "POST":
+        if periodo.activo:
+            messages.error(request, "No se puede eliminar el período activo: activa otro primero.")
+        else:
+            return eliminar_protegido(request, periodo, "core:periodo_lista")
+    return redirect("core:periodo_lista")
+
+
+@requiere_rol(*ROLES_CONFIGURACION)
 def periodo_activar(request, pk):
     periodo = get_object_or_404(PeriodoEscolar, pk=pk)
     if request.method == "POST":
@@ -380,6 +396,14 @@ class SeccionUpdateView(RolRequeridoMixin, UpdateView):
         respuesta = super().form_valid(form)
         messages.success(self.request, f"Sección «{self.object}» actualizada.")
         return respuesta
+
+
+@requiere_rol(*ROLES_CONFIGURACION)
+def seccion_eliminar(request, pk):
+    seccion = get_object_or_404(Seccion, pk=pk)
+    if request.method == "POST":
+        return eliminar_protegido(request, seccion, "core:seccion_lista")
+    return redirect("core:seccion_lista")
 
 
 @requiere_rol(*ROLES_CONFIGURACION)

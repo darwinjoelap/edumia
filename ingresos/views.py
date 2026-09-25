@@ -13,7 +13,7 @@ from academico.models import Inscripcion, Seccion
 from core.auditoria import registrar
 from core.mixins import RolRequeridoMixin, requiere_rol, verificar_seccion_docente
 from core.models import PeriodoEscolar, RegistroAuditoria
-from core.utils import normalizar_cedula, normalizar_telefono
+from core.utils import eliminar_protegido, normalizar_cedula, normalizar_telefono
 
 from .forms import (
     AporteForm,
@@ -299,6 +299,14 @@ class ConceptoIngresoUpdateView(RolRequeridoMixin, UpdateView):
         return respuesta
 
 
+@requiere_rol(*ROLES_CONFIGURACION)
+def concepto_eliminar(request, pk):
+    concepto = get_object_or_404(ConceptoIngreso, pk=pk)
+    if request.method == "POST":
+        return eliminar_protegido(request, concepto, "ingresos:concepto_lista")
+    return redirect("ingresos:concepto_lista")
+
+
 class FormaPagoListView(RolRequeridoMixin, ListView):
     roles_permitidos = ROLES_CONFIGURACION
     model = FormaPago
@@ -331,6 +339,14 @@ class FormaPagoUpdateView(RolRequeridoMixin, UpdateView):
         respuesta = super().form_valid(form)
         messages.success(self.request, f"Forma de pago «{self.object}» actualizada.")
         return respuesta
+
+
+@requiere_rol(*ROLES_CONFIGURACION)
+def formapago_eliminar(request, pk):
+    forma_pago = get_object_or_404(FormaPago, pk=pk)
+    if request.method == "POST":
+        return eliminar_protegido(request, forma_pago, "ingresos:formapago_lista")
+    return redirect("ingresos:formapago_lista")
 
 
 class MontoConceptoListView(RolRequeridoMixin, ListView):
@@ -411,3 +427,11 @@ class BancoUpdateView(RolRequeridoMixin, UpdateView):
         respuesta = super().form_valid(form)
         messages.success(self.request, f"Banco «{self.object}» actualizado.")
         return respuesta
+
+
+@requiere_rol(*ROLES_CONFIGURACION)
+def banco_eliminar(request, pk):
+    banco = get_object_or_404(Banco, pk=pk)
+    if request.method == "POST":
+        return eliminar_protegido(request, banco, "ingresos:banco_lista")
+    return redirect("ingresos:banco_lista")

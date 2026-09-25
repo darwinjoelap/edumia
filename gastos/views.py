@@ -9,6 +9,7 @@ from django.views.generic import CreateView, ListView, UpdateView
 from core.auditoria import registrar
 from core.mixins import RolRequeridoMixin, requiere_rol
 from core.models import RegistroAuditoria
+from core.utils import eliminar_protegido
 
 from .forms import (
     CategoriaGastoForm,
@@ -209,6 +210,14 @@ class CategoriaGastoUpdateView(RolRequeridoMixin, UpdateView):
         return respuesta
 
 
+@requiere_rol(*ROLES_CONFIGURACION)
+def categoria_eliminar(request, pk):
+    categoria = get_object_or_404(CategoriaGasto, pk=pk)
+    if request.method == "POST":
+        return eliminar_protegido(request, categoria, "gastos:categoria_lista")
+    return redirect("gastos:categoria_lista")
+
+
 class UnidadMedidaListView(RolRequeridoMixin, ListView):
     roles_permitidos = ROLES_CONFIGURACION
     model = UnidadMedida
@@ -241,6 +250,14 @@ class UnidadMedidaUpdateView(RolRequeridoMixin, UpdateView):
         respuesta = super().form_valid(form)
         messages.success(self.request, f"Unidad de medida «{self.object}» actualizada.")
         return respuesta
+
+
+@requiere_rol(*ROLES_CONFIGURACION)
+def unidad_eliminar(request, pk):
+    unidad = get_object_or_404(UnidadMedida, pk=pk)
+    if request.method == "POST":
+        return eliminar_protegido(request, unidad, "gastos:unidad_lista")
+    return redirect("gastos:unidad_lista")
 
 
 class ProductoListView(RolRequeridoMixin, ListView):
@@ -277,6 +294,14 @@ class ProductoUpdateView(RolRequeridoMixin, UpdateView):
         return respuesta
 
 
+@requiere_rol(*ROLES_CONFIGURACION)
+def producto_eliminar(request, pk):
+    producto = get_object_or_404(Producto, pk=pk)
+    if request.method == "POST":
+        return eliminar_protegido(request, producto, "gastos:producto_lista")
+    return redirect("gastos:producto_lista")
+
+
 class ProveedorListView(RolRequeridoMixin, ListView):
     roles_permitidos = ROLES_CONFIGURACION
     model = Proveedor
@@ -309,6 +334,14 @@ class ProveedorUpdateView(RolRequeridoMixin, UpdateView):
         respuesta = super().form_valid(form)
         messages.success(self.request, f"Proveedor «{self.object}» actualizado.")
         return respuesta
+
+
+@requiere_rol(*ROLES_CONFIGURACION)
+def proveedor_eliminar(request, pk):
+    proveedor = get_object_or_404(Proveedor, pk=pk)
+    if request.method == "POST":
+        return eliminar_protegido(request, proveedor, "gastos:proveedor_lista")
+    return redirect("gastos:proveedor_lista")
 
 
 class FondoListView(RolRequeridoMixin, ListView):
