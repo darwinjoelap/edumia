@@ -8,13 +8,13 @@ from django.urls import reverse
 from cambio.services import formatear
 from core.mixins import requiere_rol
 from core.models import Institucion
-from ingresos.views import ROLES_REGISTRO, ROLES_VERIFICACION
+from ingresos.views import ROLES_HISTORIAL
 
 from .models import Recibo
 
 # Quién puede ver/reimprimir un recibo desde el sistema: los mismos roles
-# que pueden ver el aporte que lo originó (además del superusuario).
-ROLES_VER_RECIBO = (*ROLES_VERIFICACION, *ROLES_REGISTRO)
+# que pueden ver el historial completo de aportes (además del superusuario).
+ROLES_VER_RECIBO = ROLES_HISTORIAL
 
 
 def _qr_base64(url: str) -> str:

@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block titulo %}Todos los gastos — Edumia{% endblock %}
+{% block titulo_topbar %}Todos los gastos{% endblock %}
+{% block contenido %}
+
+<div class="mb-4">
+  <h1 class="h3 mb-1">Todos los gastos</h1>
+  <p class="text-muted mb-0">
+    Todos los gastos, en cualquier estado. La bandeja de aprobación solo muestra los que están
+    pendientes; aquí se pueden ubicar también los ya aprobados o anulados.
+  </p>
+</div>
+
+<div class="card card-edumia mb-3">
+  <div class="card-body">
+    <form method="get" class="row g-3 align-items-end">
+      <div class="col-sm-4">
+        <label class="form-label small fw-semibold">Estado</label>
+        <select name="estado" class="form-select">
+          <option value="">Todos</option>
+          {% for valor, etiqueta in estados %}
+            <option value="{{ valor }}" {% if valor == estado_filtro %}selected{% endif %}>{{ etiqueta }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-5">
+        <label class="form-label small fw-semibold">Buscar</label>
+        <input type="text" name="q" class="form-control" value="{{ q }}"
+               placeholder="Proveedor, fondo o número de documento">
+      </div>
+      <div class="col-sm-3">
+        <button type="submit" class="btn btn-edumia-primary btn-sm w-100"><i class="bi bi-funnel"></i> Filtrar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card card-edumia">
+  {% if gastos %}
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead>
+        <tr>
+          <th>Fondo</th><th>Proveedor</th><th>Monto</th><th>Documento</th>
+          <th>Fecha</th><th>Registrado por</th><th>Estado</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for gasto in gastos %}
+        <tr>
+          <td>{{ gasto.fondo }}</td>
+          <td>{{ gasto.proveedor|default:"—" }}</td>
+          <td>{{ gasto.monto }} {{ gasto.moneda }}</td>
+          <td>{{ gasto.get_tipo_documento_display }} {{ gasto.numero_documento }}</td>
+          <td>{{ gasto.fecha }}</td>
+          <td>{{ gasto.registrado_por }}</td>
+          <td>
+            {% if gasto.estado == "aprobado" %}
+              <span class="badge text-bg-success">{{ gasto.get_estado_display }}</span>
+            {% elif gasto.estado == "anulado" %}
+              <span class="badge text-bg-danger">{{ gasto.get_estado_display }}</span>
+            {% else %}
+              <span class="badge text-bg-secondary">{{ gasto.get_estado_display }}</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <a href="{% url 'gastos:gasto_detalle' gasto.pk %}" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-eye"></i> Ver
+            </a>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if is_paginated %}
+  <div class="card-body py-2">
+    <nav class="d-flex justify-content-between">
+      {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&estado={{ estado_filtro }}&q={{ q }}" class="btn btn-sm btn-outline-secondary">« Más recientes</a>
+      {% else %}<span></span>{% endif %}
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&estado={{ estado_filtro }}&q={{ q }}" class="btn btn-sm btn-outline-secondary">Más antiguos »</a>
+      {% endif %}
+    </nav>
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-inbox d-block mb-2"></i>
+    No hay gastos{% if estado_filtro or q %} con ese filtro{% endif %}.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

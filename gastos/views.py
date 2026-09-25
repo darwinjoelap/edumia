@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
@@ -31,6 +32,11 @@ ROLES_APROBACION = ("administrador",)
 
 # Quién administra los catálogos de Gastos desde Configuración.
 ROLES_CONFIGURACION = ("administrador",)
+
+# Quién puede ver el historial completo de gastos (cualquier estado):
+# además de quienes registran/aprueban, se suman director y auditor, que
+# ya tienen acceso de solo consulta a Reportes y balance.
+ROLES_HISTORIAL = ("administrador", "responsable_fondo", "director", "auditor")
 
 
 def _mensajes_error(e):
@@ -111,7 +117,7 @@ def gasto_bandeja(request):
     return render(request, "gastos/gasto_bandeja.html", {"gastos": gastos, "puede_aprobar": puede_aprobar})
 
 
-@requiere_rol(*ROLES_APROBACION, *ROLES_REGISTRO)
+@requiere_rol(*ROLES_HISTORIAL)
 def gasto_detalle(request, pk):
     gasto = get_object_or_404(
         Gasto.objects.select_related("fondo", "proveedor", "registrado_por", "aprobado_por", "anulado_por"),
@@ -172,6 +178,40 @@ def gasto_anular(request, pk):
     return render(request, "gastos/gasto_motivo.html", {
         "gasto": gasto, "titulo": "Anular gasto", "boton": "Anular gasto",
     })
+
+
+class GastoListView(RolRequeridoMixin, ListView):
+    """Historial completo de gastos en cualquier estado, con filtro por
+    estado y búsqueda libre. La bandeja (`gasto_bandeja`) solo muestra los
+    «registrado» a la espera de aprobación; esta pantalla sirve para
+    ubicar cualquier gasto ya aprobado o anulado."""
+
+    roles_permitidos = ROLES_HISTORIAL
+    model = Gasto
+    template_name = "gastos/gasto_lista.html"
+    context_object_name = "gastos"
+    paginate_by = 40
+
+    def get_queryset(self):
+        qs = Gasto.objects.select_related("fondo", "proveedor", "registrado_por")
+        estado = self.request.GET.get("estado", "").strip()
+        if estado:
+            qs = qs.filter(estado=estado)
+        q = self.request.GET.get("q", "").strip()
+        if q:
+            qs = qs.filter(
+                Q(proveedor__nombre__icontains=q)
+                | Q(numero_documento__icontains=q)
+                | Q(fondo__nombre__icontains=q)
+            )
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["estados"] = Gasto.Estado.choices
+        ctx["estado_filtro"] = self.request.GET.get("estado", "")
+        ctx["q"] = self.request.GET.get("q", "")
+        return ctx
 
 
 # --- Configuración: catálogos de Gastos (rol administrador) ----------------

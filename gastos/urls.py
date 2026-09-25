@@ -8,6 +8,7 @@ urlpatterns = [
     path("registrar/", views.gasto_registrar, name="gasto_registrar"),
     path("renglon-nuevo/", views.gasto_renglon_nuevo, name="gasto_renglon_nuevo"),
     path("bandeja/", views.gasto_bandeja, name="gasto_bandeja"),
+    path("lista/", views.GastoListView.as_view(), name="gasto_lista"),
     path("<int:pk>/", views.gasto_detalle, name="gasto_detalle"),
     path("<int:pk>/editar/", views.gasto_editar, name="gasto_editar"),
     path("<int:pk>/aprobar/", views.gasto_aprobar, name="gasto_aprobar"),

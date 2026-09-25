@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block titulo %}Todos los ingresos — Edumia{% endblock %}
+{% block titulo_topbar %}Todos los ingresos{% endblock %}
+{% block contenido %}
+
+<div class="mb-4">
+  <h1 class="h3 mb-1">Todos los ingresos</h1>
+  <p class="text-muted mb-0">
+    Todos los aportes, en cualquier estado. Útil cuando ya se verificó un ingreso y no se
+    recuerda el número de cédula, referencia o teléfono para encontrarlo con «Buscar aporte».
+  </p>
+</div>
+
+<div class="card card-edumia mb-3">
+  <div class="card-body">
+    <form method="get" class="row g-3 align-items-end">
+      <div class="col-sm-4">
+        <label class="form-label small fw-semibold">Estado</label>
+        <select name="estado" class="form-select">
+          <option value="">Todos</option>
+          {% for valor, etiqueta in estados %}
+            <option value="{{ valor }}" {% if valor == estado_filtro %}selected{% endif %}>{{ etiqueta }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-5">
+        <label class="form-label small fw-semibold">Buscar</label>
+        <input type="text" name="q" class="form-control" value="{{ q }}"
+               placeholder="Estudiante, referencia, cédula, teléfono o quien entregó">
+      </div>
+      <div class="col-sm-3">
+        <button type="submit" class="btn btn-edumia-primary btn-sm w-100"><i class="bi bi-funnel"></i> Filtrar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card card-edumia">
+  {% if aportes %}
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead>
+        <tr>
+          <th>Concepto</th>
+          <th>Estudiante / origen</th>
+          <th>Monto</th>
+          <th>Forma de pago</th>
+          <th>Fecha de pago</th>
+          <th>Registrado por</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for aporte in aportes %}
+        <tr>
+          <td>{{ aporte.concepto }}</td>
+          <td>
+            {% if aporte.inscripcion %}
+              {{ aporte.inscripcion.estudiante }}
+              <div class="text-muted small">{{ aporte.inscripcion.seccion }}</div>
+            {% else %}
+              {{ aporte.entregado_por_nombre|default:aporte.entregado_por|default:"—" }}
+              <div class="text-muted small">Ingreso sin estudiante</div>
+            {% endif %}
+          </td>
+          <td>{{ aporte.monto }} {{ aporte.moneda }}</td>
+          <td>{{ aporte.forma_pago }}</td>
+          <td>{{ aporte.fecha_pago }}</td>
+          <td>{{ aporte.registrado_por }}</td>
+          <td>
+            {% if aporte.estado == "verificado" %}
+              <span class="badge text-bg-success">{{ aporte.get_estado_display }}</span>
+            {% elif aporte.estado == "observado" %}
+              <span class="badge text-bg-warning">{{ aporte.get_estado_display }}</span>
+            {% elif aporte.estado == "anulado" %}
+              <span class="badge text-bg-danger">{{ aporte.get_estado_display }}</span>
+            {% else %}
+              <span class="badge text-bg-secondary">{{ aporte.get_estado_display }}</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            {% if aporte.recibo %}
+              <a href="{% url 'recibos:recibo_detalle' aporte.recibo.pk %}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-receipt"></i> Ver recibo
+              </a>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if is_paginated %}
+  <div class="card-body py-2">
+    <nav class="d-flex justify-content-between">
+      {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&estado={{ estado_filtro }}&q={{ q }}" class="btn btn-sm btn-outline-secondary">« Más recientes</a>
+      {% else %}<span></span>{% endif %}
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&estado={{ estado_filtro }}&q={{ q }}" class="btn btn-sm btn-outline-secondary">Más antiguos »</a>
+      {% endif %}
+    </nav>
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-inbox d-block mb-2"></i>
+    No hay ingresos{% if estado_filtro or q %} con ese filtro{% endif %}.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

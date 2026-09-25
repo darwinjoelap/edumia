@@ -52,8 +52,9 @@
           <i class="bi bi-arrow-up-circle-fill"></i> Promoción
         </a>
 
-        {% if user.is_superuser or user.perfilusuario.rol == "administrador" or user.perfilusuario.rol == "responsable_fondo" %}
+        {% if user.is_superuser or user.perfilusuario.rol == "administrador" or user.perfilusuario.rol == "responsable_fondo" or user.perfilusuario.rol == "director" or user.perfilusuario.rol == "auditor" %}
         <div class="edumia-nav-heading">Ingresos</div>
+        {% if user.is_superuser or user.perfilusuario.rol == "administrador" or user.perfilusuario.rol == "responsable_fondo" %}
         <a class="nav-link {% if request.resolver_match.url_name == 'aporte_registrar' %}active{% endif %}" href="{% url 'ingresos:aporte_registrar' %}">
           <i class="bi bi-plus-circle-fill"></i> Registrar ingreso
         </a>
@@ -64,14 +65,23 @@
           <i class="bi bi-search"></i> Buscar aporte
         </a>
         {% endif %}
+        <a class="nav-link {% if request.resolver_match.url_name == 'aporte_lista' %}active{% endif %}" href="{% url 'ingresos:aporte_lista' %}">
+          <i class="bi bi-card-list"></i> Todos los ingresos
+        </a>
+        {% endif %}
 
-        {% if user.is_superuser or user.perfilusuario.rol == "administrador" or user.perfilusuario.rol == "responsable_fondo" %}
+        {% if user.is_superuser or user.perfilusuario.rol == "administrador" or user.perfilusuario.rol == "responsable_fondo" or user.perfilusuario.rol == "director" or user.perfilusuario.rol == "auditor" %}
         <div class="edumia-nav-heading">Gastos</div>
+        {% if user.is_superuser or user.perfilusuario.rol == "administrador" or user.perfilusuario.rol == "responsable_fondo" %}
         <a class="nav-link {% if request.resolver_match.url_name == 'gasto_registrar' %}active{% endif %}" href="{% url 'gastos:gasto_registrar' %}">
           <i class="bi bi-cart-plus-fill"></i> Registrar gasto
         </a>
         <a class="nav-link {% if request.resolver_match.url_name == 'gasto_bandeja' %}active{% endif %}" href="{% url 'gastos:gasto_bandeja' %}">
           <i class="bi bi-inbox-fill"></i> Bandeja de aprobación
+        </a>
+        {% endif %}
+        <a class="nav-link {% if request.resolver_match.url_name == 'gasto_lista' %}active{% endif %}" href="{% url 'gastos:gasto_lista' %}">
+          <i class="bi bi-card-list"></i> Todos los gastos
         </a>
         {% endif %}
 

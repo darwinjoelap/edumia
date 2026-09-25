@@ -38,6 +38,11 @@ ROLES_VERIFICACION = ("administrador",)
 # coincidir con core.views.ROLES_CONFIGURACION).
 ROLES_CONFIGURACION = ("administrador",)
 
+# Quién puede ver el historial completo de aportes (cualquier estado):
+# además de quienes registran/verifican, se suman director y auditor, que
+# ya tienen acceso de solo consulta a Reportes y balance.
+ROLES_HISTORIAL = ("administrador", "responsable_fondo", "director", "auditor")
+
 # Quién puede usar el registro en lote por sección, además del docente
 # responsable de esa sección en particular (verificar_seccion_docente lo
 # restringe a "la suya"; administrador/responsable_fondo pueden usarlo en
@@ -108,6 +113,50 @@ def aporte_buscar(request):
             .order_by("-creado_en")
         )
     return render(request, "ingresos/aporte_buscar.html", {"query": query, "aportes": aportes})
+
+
+class AporteListView(RolRequeridoMixin, ListView):
+    """Historial completo de aportes en cualquier estado, con filtro por
+    estado y búsqueda libre. A diferencia de la bandeja (solo «registrado»
+    u «observado») y de «Buscar aporte» (coincidencia exacta de
+    referencia, cédula o teléfono), esta pantalla sirve para ubicar un
+    aporte que ya se verificó y del que no se recuerda el dato exacto que
+    se usó para registrarlo."""
+
+    roles_permitidos = ROLES_HISTORIAL
+    model = Aporte
+    template_name = "ingresos/aporte_lista.html"
+    context_object_name = "aportes"
+    paginate_by = 40
+
+    def get_queryset(self):
+        qs = Aporte.objects.select_related(
+            "concepto", "inscripcion__estudiante", "inscripcion__seccion__grado", "registrado_por", "recibo",
+        ).order_by("-creado_en")
+        estado = self.request.GET.get("estado", "").strip()
+        if estado:
+            qs = qs.filter(estado=estado)
+        q = self.request.GET.get("q", "").strip()
+        if q:
+            cedula = normalizar_cedula(q) or ""
+            telefono = normalizar_telefono(q)
+            referencia = q.upper()
+            qs = qs.filter(
+                Q(referencia=referencia)
+                | Q(cedula_titular=cedula)
+                | Q(telefono_emisor=telefono)
+                | Q(inscripcion__estudiante__nombres__icontains=q)
+                | Q(inscripcion__estudiante__apellidos__icontains=q)
+                | Q(entregado_por_nombre__icontains=q)
+            )
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["estados"] = Aporte.Estado.choices
+        ctx["estado_filtro"] = self.request.GET.get("estado", "")
+        ctx["q"] = self.request.GET.get("q", "")
+        return ctx
 
 
 @login_required
