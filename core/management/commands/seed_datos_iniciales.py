@@ -67,16 +67,34 @@ GRADOS = [
     ("5to Año", Grado.Nivel.MEDIA, 14),
 ]
 
-# Unidades de medida (docs/MODELOS_gastos.md, Fase 5). nombre, abreviatura
+# Unidades de medida (docs/MODELOS_gastos.md, Fase 5). nombre, abreviatura.
+# Ampliado en la Fase 8 (D-31) para cubrir los tipos de gasto típicos de una
+# institución: alimentos, limpieza, papelería/oficina, mantenimiento y
+# servicios (mano de obra, montos globales sin cantidad real).
 UNIDADES_MEDIDA = [
     ("Kilogramo", "Kg"),
     ("Gramo", "g"),
     ("Litro", "Litro"),
+    ("Mililitro", "ml"),
     ("Unidad", "Unidad"),
-    ("Bulto", "Bulto"),
+    ("Par", "Par"),
     ("Docena", "Docena"),
+    ("Bulto", "Bulto"),
+    ("Saco", "Saco"),
     ("Paquete", "Paquete"),
     ("Caja", "Caja"),
+    ("Resma", "Resma"),
+    ("Rollo", "Rollo"),
+    ("Galón", "Galón"),
+    ("Metro", "m"),
+    ("Metro cuadrado", "m2"),
+    ("Frasco", "Frasco"),
+    ("Tubo", "Tubo"),
+    ("Bolsa", "Bolsa"),
+    ("Kit", "Kit"),
+    ("Hora", "Hora"),
+    ("Servicio", "Servicio"),
+    ("Global", "Global"),
 ]
 
 

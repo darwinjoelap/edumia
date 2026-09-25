@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block titulo %}Bitácora de auditoría — Configuración{% endblock %}
+{% block titulo_topbar %}Bitácora de auditoría{% endblock %}
+{% block contenido %}
+<div class="mb-4">
+  <h1 class="h3 mb-1">Bitácora de auditoría</h1>
+  <p class="text-muted mb-0">
+    Registro de solo lectura: logins, verificaciones y observaciones de aportes, aprobaciones y
+    anulaciones de gastos, emisión de recibos, carga/corrección de la tasa de cambio, y
+    activación/cierre de períodos. Nada de esto se puede editar ni borrar desde aquí.
+  </p>
+</div>
+
+<div class="card card-edumia mb-3">
+  <div class="card-body">
+    <form method="get" class="row g-3 align-items-end">
+      <div class="col-sm-4">
+        <label class="form-label small fw-semibold">Tipo de evento</label>
+        <select name="accion" class="form-select">
+          <option value="">Todos</option>
+          {% for valor, etiqueta in acciones %}
+            <option value="{{ valor }}" {% if valor == accion_filtro %}selected{% endif %}>{{ etiqueta }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-5">
+        <label class="form-label small fw-semibold">Buscar</label>
+        <input type="text" name="q" class="form-control" value="{{ q }}"
+               placeholder="Usuario, modelo, # de objeto o descripción">
+      </div>
+      <div class="col-sm-3">
+        <button type="submit" class="btn btn-edumia-primary btn-sm w-100"><i class="bi bi-funnel"></i> Filtrar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card card-edumia">
+  {% if eventos %}
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead>
+        <tr><th>Fecha</th><th>Usuario</th><th>Evento</th><th>Objeto</th><th>Descripción</th><th>IP</th></tr>
+      </thead>
+      <tbody>
+      {% for evento in eventos %}
+        <tr>
+          <td class="text-nowrap">{{ evento.fecha|date:"d/m/Y H:i" }}</td>
+          <td>{{ evento.usuario|default:"—" }}</td>
+          <td><span class="badge text-bg-light border">{{ evento.get_accion_display }}</span></td>
+          <td class="text-muted small">{% if evento.modelo %}{{ evento.modelo }}{% if evento.objeto_id %} #{{ evento.objeto_id }}{% endif %}{% else %}—{% endif %}</td>
+          <td class="small">{{ evento.descripcion|default:"—"|truncatechars:80 }}</td>
+          <td class="text-muted small">{{ evento.ip|default:"—" }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if is_paginated %}
+  <div class="card-body py-2">
+    <nav class="d-flex justify-content-between">
+      {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&accion={{ accion_filtro }}&q={{ q }}" class="btn btn-sm btn-outline-secondary">« Más recientes</a>
+      {% else %}<span></span>{% endif %}
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&accion={{ accion_filtro }}&q={{ q }}" class="btn btn-sm btn-outline-secondary">Más antiguos »</a>
+      {% endif %}
+    </nav>
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-journal-x d-block mb-2"></i>
+    No hay eventos registrados todavía{% if accion_filtro or q %} con ese filtro{% endif %}.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

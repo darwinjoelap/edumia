@@ -1,8 +1,10 @@
 from decimal import Decimal
 
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
@@ -11,12 +13,21 @@ from django.views.generic import CreateView, ListView, UpdateView
 
 from academico.models import Estudiante, Grado, Representante, Seccion
 from cambio.services import SinTasaError, formatear, obtener_tasa
+from core.auditoria import registrar
 from core.mixins import RolRequeridoMixin, requiere_rol
-from core.models import Institucion, PeriodoEscolar
+from core.models import Institucion, PeriodoEscolar, PerfilUsuario, RegistroAuditoria
 from gastos.models import Fondo
 from gastos.services import saldo_fondo
 
-from .forms import GradoForm, InstitucionForm, PeriodoEscolarForm, SeccionForm
+from .forms import (
+    GradoForm,
+    InstitucionForm,
+    PeriodoEscolarForm,
+    RestablecerClaveForm,
+    SeccionForm,
+    UsuarioCreateForm,
+    UsuarioUpdateForm,
+)
 
 # Roles que manejan dinero (todos menos docente): ven el balance y los
 # accesos de ingreso/gasto en el dashboard.
@@ -139,6 +150,8 @@ def configuracion(request):
         "total_grados": Grado.objects.count(),
         "total_periodos": PeriodoEscolar.objects.count(),
         "total_secciones": Seccion.objects.count(),
+        "total_usuarios": get_user_model().objects.filter(perfilusuario__isnull=False).count(),
+        "total_fondos": Fondo.objects.count(),
     })
 
 
@@ -250,6 +263,7 @@ def periodo_activar(request, pk):
                 PeriodoEscolar.objects.filter(activo=True).exclude(pk=periodo.pk).update(activo=False)
                 periodo.activo = True
                 periodo.save(update_fields=["activo"])
+            registrar(request, RegistroAuditoria.Accion.ACTIVAR_PERIODO, modelo="PeriodoEscolar", objeto_id=periodo.pk, descripcion=str(periodo))
             messages.success(request, f"Período «{periodo}» activado.")
     return redirect("core:periodo_lista")
 
@@ -263,8 +277,45 @@ def periodo_cerrar(request, pk):
         periodo.cerrado_por = request.user
         periodo.fecha_cierre = timezone.now()
         periodo.save(update_fields=["cerrado", "activo", "cerrado_por", "fecha_cierre"])
+        registrar(request, RegistroAuditoria.Accion.CERRAR_PERIODO, modelo="PeriodoEscolar", objeto_id=periodo.pk, descripcion=str(periodo))
         messages.success(request, f"Período «{periodo}» cerrado.")
     return redirect("core:periodo_lista")
+
+
+class BitacoraListView(RolRequeridoMixin, ListView):
+    """Fase 8 (D-28): la bitácora existía desde la Fase 1 pero no tenía
+    ninguna pantalla propia — solo se podía ver en `/admin/`, reservado al
+    superusuario (`core/admin.py`). Esta es de solo lectura, como el admin:
+    nada aquí permite editar ni borrar una fila (es un registro de auditoría,
+    D-09 aplica también en espíritu)."""
+
+    roles_permitidos = ROLES_CONFIGURACION
+    model = RegistroAuditoria
+    template_name = "core/configuracion/bitacora_lista.html"
+    context_object_name = "eventos"
+    paginate_by = 40
+
+    def get_queryset(self):
+        qs = RegistroAuditoria.objects.select_related("usuario")
+        accion = self.request.GET.get("accion", "").strip()
+        if accion:
+            qs = qs.filter(accion=accion)
+        q = self.request.GET.get("q", "").strip()
+        if q:
+            qs = qs.filter(
+                Q(modelo__icontains=q)
+                | Q(objeto_id__icontains=q)
+                | Q(descripcion__icontains=q)
+                | Q(usuario__username__icontains=q)
+            )
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["acciones"] = RegistroAuditoria.Accion.choices
+        ctx["accion_filtro"] = self.request.GET.get("accion", "")
+        ctx["q"] = self.request.GET.get("q", "")
+        return ctx
 
 
 class SeccionListView(RolRequeridoMixin, ListView):
@@ -340,3 +391,139 @@ def seccion_toggle_activa(request, pk):
         estado = "activada" if seccion.activa else "desactivada"
         messages.success(request, f"Sección «{seccion}» {estado}.")
     return redirect("core:seccion_lista")
+
+
+# --- Usuarios (Fase 8, D-30) -------------------------------------------------
+# Antes solo se podía dar de alta un usuario desde /admin/, reservado al
+# superusuario (core/admin.py) — el rol administrador de Edumia no tenía
+# forma de crear ni un docente. Esta pantalla cubre cualquier rol, no solo
+# docente: crear, editar, restablecer clave y activar/desactivar.
+
+
+class UsuarioListView(RolRequeridoMixin, ListView):
+    roles_permitidos = ROLES_CONFIGURACION
+    model = get_user_model()
+    template_name = "core/configuracion/usuario_lista.html"
+    context_object_name = "usuarios"
+    paginate_by = 40
+
+    def get_queryset(self):
+        # Solo usuarios con PerfilUsuario: son los que administra esta
+        # pantalla. Un superusuario técnico creado por createsuperuser sin
+        # perfil (el de /admin/) no aparece aquí ni se puede tocar desde acá.
+        qs = (
+            get_user_model()
+            .objects.filter(perfilusuario__isnull=False)
+            .select_related("perfilusuario", "perfilusuario__fondo")
+            .order_by("last_name", "first_name")
+        )
+        rol = self.request.GET.get("rol", "").strip()
+        if rol:
+            qs = qs.filter(perfilusuario__rol=rol)
+        q = self.request.GET.get("q", "").strip()
+        if q:
+            qs = qs.filter(
+                Q(username__icontains=q) | Q(first_name__icontains=q) | Q(last_name__icontains=q)
+            )
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["roles"] = PerfilUsuario.Rol.choices
+        ctx["rol_filtro"] = self.request.GET.get("rol", "")
+        ctx["q"] = self.request.GET.get("q", "")
+        return ctx
+
+
+@requiere_rol(*ROLES_CONFIGURACION)
+def usuario_crear(request):
+    if request.method == "POST":
+        form = UsuarioCreateForm(request.POST)
+        if form.is_valid():
+            with transaction.atomic():
+                usuario, perfil = form.save()
+            registrar(
+                request,
+                RegistroAuditoria.Accion.CREAR_USUARIO,
+                modelo="User",
+                objeto_id=usuario.pk,
+                descripcion=f"{usuario.get_full_name()} ({usuario.username}) — {perfil.get_rol_display()}",
+            )
+            messages.success(
+                request,
+                f"Usuario «{usuario.username}» creado. Entrégale la contraseña temporal directamente "
+                "(no se envía por correo); se le pedirá cambiarla al entrar.",
+            )
+            return redirect("core:usuario_lista")
+    else:
+        form = UsuarioCreateForm()
+    return render(request, "core/configuracion/usuario_form.html", {"form": form, "usuario_obj": None})
+
+
+@requiere_rol(*ROLES_CONFIGURACION)
+def usuario_editar(request, pk):
+    usuario = get_object_or_404(get_user_model(), pk=pk, perfilusuario__isnull=False)
+    if request.method == "POST":
+        form = UsuarioUpdateForm(request.POST, usuario=usuario)
+        if form.is_valid():
+            with transaction.atomic():
+                form.save()
+            registrar(
+                request,
+                RegistroAuditoria.Accion.EDITAR_USUARIO,
+                modelo="User",
+                objeto_id=usuario.pk,
+                descripcion=f"{usuario.get_full_name()} ({usuario.username})",
+            )
+            messages.success(request, f"Usuario «{usuario.username}» actualizado.")
+            return redirect("core:usuario_lista")
+    else:
+        form = UsuarioUpdateForm(usuario=usuario)
+    return render(request, "core/configuracion/usuario_form.html", {"form": form, "usuario_obj": usuario})
+
+
+@requiere_rol(*ROLES_CONFIGURACION)
+def usuario_restablecer_clave(request, pk):
+    usuario = get_object_or_404(get_user_model(), pk=pk, perfilusuario__isnull=False)
+    if request.method == "POST":
+        form = RestablecerClaveForm(request.POST)
+        if form.is_valid():
+            form.save(usuario)
+            registrar(
+                request,
+                RegistroAuditoria.Accion.RESTABLECER_CLAVE,
+                modelo="User",
+                objeto_id=usuario.pk,
+                descripcion=usuario.username,
+            )
+            messages.success(
+                request,
+                f"Contraseña de «{usuario.username}» restablecida. Entrégasela directamente; "
+                "se le pedirá cambiarla al entrar.",
+            )
+            return redirect("core:usuario_lista")
+    else:
+        form = RestablecerClaveForm()
+    return render(
+        request, "core/configuracion/usuario_restablecer_clave.html", {"form": form, "usuario_obj": usuario}
+    )
+
+
+@requiere_rol(*ROLES_CONFIGURACION)
+def usuario_toggle_activo(request, pk):
+    usuario = get_object_or_404(get_user_model(), pk=pk, perfilusuario__isnull=False)
+    if request.method == "POST":
+        if usuario.pk == request.user.pk:
+            messages.error(request, "No puedes desactivar tu propio usuario.")
+        else:
+            usuario.is_active = not usuario.is_active
+            usuario.save(update_fields=["is_active"])
+            accion = (
+                RegistroAuditoria.Accion.ACTIVAR_USUARIO
+                if usuario.is_active
+                else RegistroAuditoria.Accion.DESACTIVAR_USUARIO
+            )
+            registrar(request, accion, modelo="User", objeto_id=usuario.pk, descripcion=usuario.username)
+            estado = "activado" if usuario.is_active else "desactivado"
+            messages.success(request, f"Usuario «{usuario.username}» {estado}.")
+    return redirect("core:usuario_lista")

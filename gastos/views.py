@@ -6,17 +6,20 @@ from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.generic import CreateView, ListView, UpdateView
 
+from core.auditoria import registrar
 from core.mixins import RolRequeridoMixin, requiere_rol
+from core.models import RegistroAuditoria
 
 from .forms import (
     CategoriaGastoForm,
     DetalleGastoFormSet,
+    FondoForm,
     GastoForm,
     ProductoForm,
     ProveedorForm,
     UnidadMedidaForm,
 )
-from .models import CategoriaGasto, Gasto, Producto, Proveedor, UnidadMedida
+from .models import CategoriaGasto, Fondo, Gasto, Producto, Proveedor, UnidadMedida
 from .services import saldo_fondo
 
 # Quién registra un gasto (además del superusuario).
@@ -139,6 +142,7 @@ def gasto_aprobar(request, pk):
         gasto.saldo_negativo_confirmado = request.POST.get("saldo_negativo_confirmado") == "on"
         try:
             gasto.transicionar(Gasto.Estado.APROBADO, request.user)
+            registrar(request, RegistroAuditoria.Accion.APROBAR, modelo="Gasto", objeto_id=gasto.pk, descripcion=str(gasto))
             messages.success(request, f"Gasto #{gasto.pk} aprobado.")
             return redirect("gastos:gasto_bandeja")
         except ValidationError as e:
@@ -159,6 +163,7 @@ def gasto_anular(request, pk):
         motivo = request.POST.get("motivo", "").strip()
         try:
             gasto.transicionar(Gasto.Estado.ANULADO, request.user, motivo=motivo)
+            registrar(request, RegistroAuditoria.Accion.ANULAR, modelo="Gasto", objeto_id=gasto.pk, descripcion=motivo)
             messages.success(request, f"Gasto #{gasto.pk} anulado.")
             return redirect("gastos:gasto_bandeja")
         except ValidationError as e:
@@ -303,4 +308,76 @@ class ProveedorUpdateView(RolRequeridoMixin, UpdateView):
     def form_valid(self, form):
         respuesta = super().form_valid(form)
         messages.success(self.request, f"Proveedor «{self.object}» actualizado.")
+        return respuesta
+
+
+class FondoListView(RolRequeridoMixin, ListView):
+    """Fase 8 (D-32): antes un fondo solo se podía crear desde /admin/ (y su
+    saldo inicial no existía como concepto — el saldo siempre arrancaba en
+    cero). Muestra el saldo actual de cada uno con `saldo_fondo()`, el mismo
+    cálculo que usa el dashboard y los reportes."""
+
+    roles_permitidos = ROLES_CONFIGURACION
+    model = Fondo
+    template_name = "gastos/fondo_lista.html"
+    context_object_name = "fondos"
+    queryset = Fondo.objects.order_by("-es_general", "nombre")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        # Tupla (fondo, saldo_ves, saldo_usd) en vez de un dict aparte: la
+        # plantilla no puede indexar un dict por una variable sin un filtro
+        # propio, así que es más simple traerlo ya emparejado.
+        ctx["filas"] = [(fondo, *saldo_fondo(fondo)) for fondo in ctx["fondos"]]
+        return ctx
+
+
+class FondoCreateView(RolRequeridoMixin, CreateView):
+    roles_permitidos = ROLES_CONFIGURACION
+    model = Fondo
+    form_class = FondoForm
+    template_name = "gastos/fondo_form.html"
+    success_url = reverse_lazy("gastos:fondo_lista")
+
+    def form_valid(self, form):
+        respuesta = super().form_valid(form)
+        registrar(
+            self.request, RegistroAuditoria.Accion.CREAR_FONDO,
+            modelo="Fondo", objeto_id=self.object.pk, descripcion=str(self.object),
+        )
+        messages.success(self.request, f"Fondo «{self.object}» creado.")
+        return respuesta
+
+
+class FondoUpdateView(RolRequeridoMixin, UpdateView):
+    roles_permitidos = ROLES_CONFIGURACION
+    model = Fondo
+    form_class = FondoForm
+    template_name = "gastos/fondo_form.html"
+    success_url = reverse_lazy("gastos:fondo_lista")
+
+    def form_valid(self, form):
+        saldo_cambio = (
+            "saldo_inicial_ves" in form.changed_data or "saldo_inicial_usd" in form.changed_data
+        )
+        # Ojo: form.instance (== self.object) ya trae los valores NUEVOS acá
+        # (ModelForm los aplica durante full_clean, antes de form_valid), así
+        # que el "antes" se consulta aparte, directo a la base de datos.
+        anteriores = (
+            Fondo.objects.filter(pk=self.object.pk)
+            .values_list("saldo_inicial_ves", "saldo_inicial_usd")
+            .first()
+            if saldo_cambio else None
+        )
+        respuesta = super().form_valid(form)
+        if saldo_cambio:
+            registrar(
+                self.request, RegistroAuditoria.Accion.AJUSTAR_SALDO_FONDO,
+                modelo="Fondo", objeto_id=self.object.pk,
+                descripcion=(
+                    f"{self.object} — de Bs.{anteriores[0]}/USD.{anteriores[1]} "
+                    f"a Bs.{self.object.saldo_inicial_ves}/USD.{self.object.saldo_inicial_usd}"
+                ),
+            )
+        messages.success(self.request, f"Fondo «{self.object}» actualizado.")
         return respuesta

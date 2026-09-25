@@ -10,8 +10,9 @@ from django.utils.html import format_html
 from django.views.generic import CreateView, ListView, UpdateView
 
 from academico.models import Inscripcion, Seccion
+from core.auditoria import registrar
 from core.mixins import RolRequeridoMixin, requiere_rol, verificar_seccion_docente
-from core.models import PeriodoEscolar
+from core.models import PeriodoEscolar, RegistroAuditoria
 from core.utils import normalizar_cedula, normalizar_telefono
 
 from .forms import (
@@ -202,8 +203,13 @@ def aporte_verificar(request, pk):
     if request.method == "POST":
         try:
             aporte.transicionar(Aporte.Estado.VERIFICADO, request.user)
+            registrar(request, RegistroAuditoria.Accion.VERIFICAR, modelo="Aporte", objeto_id=aporte.pk, descripcion=str(aporte))
             recibo = getattr(aporte, "recibo", None)
             if recibo is not None:
+                registrar(
+                    request, RegistroAuditoria.Accion.EMITIR_RECIBO,
+                    modelo="Recibo", objeto_id=recibo.pk, descripcion=recibo.numero_texto,
+                )
                 messages.success(request, format_html(
                     'Aporte «{}» verificado. Recibo <a href="{}">{}</a> emitido.',
                     aporte, reverse("recibos:recibo_detalle", args=[recibo.pk]), recibo.numero_texto,
@@ -222,6 +228,10 @@ def aporte_observar(request, pk):
         motivo = request.POST.get("motivo", "").strip()
         try:
             aporte.transicionar(Aporte.Estado.OBSERVADO, request.user, motivo=motivo)
+            registrar(
+                request, RegistroAuditoria.Accion.OBSERVAR,
+                modelo="Aporte", objeto_id=aporte.pk, descripcion=motivo,
+            )
             messages.success(request, f"Aporte «{aporte}» marcado como observado.")
             return redirect("ingresos:aporte_bandeja")
         except ValidationError as e:
@@ -239,6 +249,10 @@ def aporte_anular(request, pk):
         motivo = request.POST.get("motivo", "").strip()
         try:
             aporte.transicionar(Aporte.Estado.ANULADO, request.user, motivo=motivo)
+            registrar(
+                request, RegistroAuditoria.Accion.ANULAR,
+                modelo="Aporte", objeto_id=aporte.pk, descripcion=motivo,
+            )
             messages.success(request, f"Aporte «{aporte}» anulado.")
             return redirect("ingresos:aporte_bandeja")
         except ValidationError as e:

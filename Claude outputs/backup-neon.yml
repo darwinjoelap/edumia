@@ -1,0 +1,116 @@
+name: Backup diario de Neon (producción)
+
+# Fase 8 (D-29): el plan gratuito de Neon no incluye backup automático, así
+# que este workflow hace un dump completo de la base de `production` todos
+# los días y lo guarda como un GitHub Release (no expira, a diferencia de
+# los artefactos normales de Actions, que sí se borran solos a los 90 días).
+#
+# Requiere un secreto del repositorio: NEON_DATABASE_URL_PRODUCTION, la
+# cadena de conexión de la rama `production` de Neon (Neon → Dashboard →
+# production → Connection string → "Pooled connection" o directa, con
+# `sslmode=require`). Se agrega en GitHub: Settings → Secrets and
+# variables → Actions → New repository secret. NUNCA se pega esa cadena
+# directamente en este archivo — el archivo es público en el repo.
+
+on:
+  schedule:
+    # 07:00 UTC = 03:00 en Venezuela (UTC-4). Corre de madrugada, cuando
+    # nadie está usando el sistema.
+    - cron: "0 7 * * *"
+  workflow_dispatch: {} # para poder correrlo a mano desde la pestaña "Actions" cuando haga falta.
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    # El GITHUB_TOKEN automático no trae permiso de escritura por defecto en
+    # este repo (depende de la configuración de Settings → Actions → General
+    # → Workflow permissions) — sin esto, "gh release create" devuelve
+    # HTTP 403: Resource not accessible by integration.
+    permissions:
+      contents: write
+    steps:
+      - name: Instalar cliente de PostgreSQL
+        # El pg_dump de los repositorios normales de Ubuntu (versión 16) es más
+        # viejo que el servidor de Neon (versión 18) y `pg_dump` se niega a
+        # correr contra un servidor más nuevo que él ("server version mismatch").
+        # Por eso se agrega el repositorio oficial de PostgreSQL (PGDG) e
+        # instala el cliente 18 en vez del que trae Ubuntu por defecto.
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends wget ca-certificates gnupg lsb-release
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo wget -q -O /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends postgresql-client-18
+
+      - name: Verificar que el secreto esté configurado
+        run: |
+          if [ -z "${{ secrets.NEON_DATABASE_URL_PRODUCTION }}" ]; then
+            echo "::error::Falta el secreto NEON_DATABASE_URL_PRODUCTION (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+
+      - name: Dump de la base de datos
+        env:
+          DATABASE_URL: ${{ secrets.NEON_DATABASE_URL_PRODUCTION }}
+        run: |
+          set -e
+          FECHA=$(date -u +%Y-%m-%d)
+          echo "FECHA=$FECHA" >> "$GITHUB_ENV"
+          # El runner ya trae un `pg_dump` 16 preinstalado en /usr/bin, y ese
+          # sigue teniendo prioridad aunque se instale el paquete 18 al lado
+          # (no queda gestionado por update-alternatives como uno esperaría).
+          # Por eso se llama al binario 18 por su ruta completa, sin depender
+          # de cuál "pg_dump" resuelva el PATH.
+          /usr/lib/postgresql/18/bin/pg_dump --version
+          # -Fc: formato "custom" de pg_dump, comprimido y el único que
+          # admite pg_restore con --clean/--if-exists para restaurar limpio.
+          /usr/lib/postgresql/18/bin/pg_dump "$DATABASE_URL" --no-owner --no-privileges -Fc -f "edumia-backup-$FECHA.dump"
+          ls -lh "edumia-backup-$FECHA.dump"
+
+      - name: Publicar como GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Por si ya existe un backup de hoy (ej. se disparó el workflow más
+          # de una vez el mismo día a mano) — sin esto, "gh release create"
+          # falla porque no permite dos releases con la misma etiqueta.
+          gh release delete "backup-$FECHA" --yes --cleanup-tag \
+            --repo "${{ github.repository }}" 2>/dev/null || true
+
+          gh release create "backup-$FECHA" "edumia-backup-$FECHA.dump" \
+            --title "Backup Neon production — $FECHA" \
+            --notes "Backup automático diario (Fase 8, D-29). Generado por el workflow backup-neon.yml." \
+            --repo "${{ github.repository }}"
+
+      - name: Borrar backups de más de 30 días (no acumular para siempre)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Como el workflow no hace `actions/checkout`, no hay un repositorio
+          # git local del que `gh` pueda adivinar a qué repo se refiere —
+          # GH_REPO se lo dice explícitamente (equivale a pasar --repo en
+          # cada comando de `gh` de este paso).
+          GH_REPO: ${{ github.repository }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import subprocess
+          from datetime import datetime, timedelta, timezone
+
+          salida = subprocess.run(
+              ["gh", "release", "list", "--limit", "200", "--json", "tagName,createdAt"],
+              capture_output=True, text=True, check=True,
+          ).stdout
+          limite = datetime.now(timezone.utc) - timedelta(days=30)
+          for release in json.loads(salida):
+              tag = release["tagName"]
+              if not tag.startswith("backup-"):
+                  continue
+              creado = datetime.strptime(release["createdAt"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+              if creado < limite:
+                  print(f"Borrando release antiguo: {tag} ({creado.date()})")
+                  subprocess.run(["gh", "release", "delete", tag, "--yes", "--cleanup-tag"], check=True)
+          PY

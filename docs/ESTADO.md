@@ -3,7 +3,7 @@
 Regla: no se empieza una fase sin cerrar la anterior aquí.
 Última actualización: 2026-09-25
 
-**Fase actual:** 7 — PWA offline (primer lote cerrado 2026-09-25: Aporte y Gasto)
+**Fase actual:** 8 — Puesta en producción (primer lote 2026-09-25: bitácora, backup y manual de usuario)
 **MVP:** Fases 0–5 — completo en funcionalidad, quedan pendientes sueltos de validación manual (ver cada fase abajo)
 
 | Fase | Nombre | Horas | Estado |
@@ -197,14 +197,19 @@ Regla: no se empieza una fase sin cerrar la anterior aquí.
 - [ ] **Pendiente de probar en el navegador real (Android), este entorno no puede simular Background Sync de verdad**: instalar la PWA, llenar "Registrar aporte" o "Registrar gasto" en modo avión, confirmar el aviso de guardado y que el botón de pendientes aparezca, reactivar los datos/wifi y confirmar que se envía solo (sin tocar nada) y que el pendiente desaparece del botón.
 - [ ] Pendiente, fuera de este lote: alta rápida de estudiantes y registro en lote por sección sin conexión (se agregan si hace falta, reutilizando `offline-sync-core.js`); edición de un gasto ya existente sin conexión (por ahora solo la creación).
 
-## Fase 8 — Producción
-- [ ] Bitácora de auditoría y `simple-history` activos
-- [ ] Backup automatizado externo (Neon no lo da gratis)
+## Fase 8 — Producción — EN CURSO (primer lote 2026-09-25)
+- [x] **Bitácora de auditoría conectada** (D-28): existía el modelo desde la Fase 1 pero no registraba nada — ahora login/login fallido, verificar/observar/anular aporte (+emisión de recibo), aprobar/anular gasto, cargar/corregir tasa, y activar/cerrar período quedan registrados de verdad, con usuario e IP. Pantalla nueva de solo lectura en `/configuracion/bitacora/` (rol administrador), con filtro por tipo de evento y texto libre. `simple-history` ya estaba activo desde antes (Aporte, Gasto, DetalleGasto, Proveedor, TasaCambio, Estudiante, Representante, Inscripcion) — eso cubre el detalle campo por campo; la bitácora cubre el evento discreto (quién, qué acción, cuándo).
+- [x] **Backup automatizado externo** (D-29): `.github/workflows/backup-neon.yml` — dump diario de Neon `production` (03:00 hora de Venezuela) publicado como GitHub Release, que no expira solo; se borran los de más de 30 días para no acumular. Requiere que agregues el secreto `NEON_DATABASE_URL_PRODUCTION` en GitHub (Settings → Secrets and variables → Actions) y dispares el workflow una vez a mano para confirmar que funciona.
+- [x] **Manual de usuario por rol**: documento vivo en Claude (no un archivo del repo) con ocho secciones — inicio de sesión y tabla resumen de roles, Docente, Responsable de fondo, Administrador, Director/Auditor, Recibos (emisión, QR, descarga como imagen, anulación), Sin conexión (PWA offline, límites), y un Glosario de términos propios de Edumia. Queda como referencia para capacitar al personal.
+- [x] **Pantalla de Usuarios** (D-30): antes solo se podía crear un usuario desde `/admin/` (reservado al superusuario) — ahora `/configuracion/usuarios/` (rol administrador) crea, edita, restablece contraseña y activa/desactiva cualquier rol (administrador, docente, responsable de fondo, director, auditor), no solo docentes. La contraseña inicial la escribe el administrador y se la entrega directo a la persona; el sistema obliga a cambiarla en el primer login. Ampliada la bitácora con 5 eventos nuevos (crear/editar usuario, restablecer clave, activar/desactivar).
+- [x] **Unidades de medida ampliadas** (D-31): de 8 a 23 en `seed_datos_iniciales`, cubriendo alimentos, limpieza, papelería/oficina, mantenimiento y servicios (Hora, Servicio, Global).
+- [x] **Comando de limpieza de datos de prueba** (D-31): `python manage.py limpiar_datos_prueba` — sin `--confirmar` solo cuenta, con `--confirmar` borra estudiantes/aportes/gastos/recibos/tasas/bitácora/usuarios de prueba y conserva Institución, períodos, grados, secciones y catálogos. Pendiente que Darwin lo corra contra Neon `production` antes de pasarle el sistema al instituto.
+- [x] **Saldo inicial de fondos** (D-32): nueva pantalla `/gastos/configuracion/fondos/` (rol administrador) para crear/editar fondos y cargarles `saldo_inicial_ves`/`saldo_inicial_usd` — lo que cada fondo ya tenía en caja antes de empezar a usar Edumia. Se suma siempre al saldo actual junto con los aportes verificados y gastos aprobados. Corregir un valor mal cargado es editar el campo desde esa pantalla, nunca fabricar un aporte/gasto falso. Ampliada la bitácora con 2 eventos nuevos (`crear_fondo`, `ajustar_saldo_fondo` — este último solo si el saldo inicial realmente cambió).
 - [ ] Ping externo a `/salud/` si no se configuró antes (ver Fase 0)
-- [ ] Manual de usuario por rol
 - [ ] Capacitación
 - [ ] Carga de datos históricos
 - [ ] Marcha blanca de un mes en paralelo
+- [ ] Validado en sandbox (D-28): `manage.py check`, `migrate` con la migración nueva, la suite existente en verde, 20 verificaciones nuevas sobre cada evento auditado, la pantalla nueva y sus permisos. (D-29) no se pudo probar en sandbox — se validó que el YAML y el script embebido son válidos; falta que Darwin lo corra una vez. (D-30/D-31) validado en sandbox: `manage.py check`, `makemigrations --check --dry-run` limpio tras la migración 0006, `migrate` aplicado, la suite existente en verde, y 38 verificaciones nuevas (crear/editar/desactivar/restablecer clave por cada rol, permisos, y el comando de limpieza sin y con `--confirmar`). (D-32) validado en sandbox: `manage.py check`, `makemigrations --check --dry-run` limpio tras las migraciones 0007/0004, `migrate` aplicado, la suite existente en verde, y 15 verificaciones nuevas (permisos, crear fondo con/sin saldo inicial, bitácora de creación y de ajuste, editar sin tocar el saldo no genera bitácora, y un aporte verificado sumándose correctamente al saldo inicial).
 
 ## Bloqueos abiertos
-- P-03 tasa oficial (Fase 2) · P-04 fondo contable (Fase 5) · P-05 tamaño de la escuela (Fase 3) · P-06 teléfonos de docentes (Fase 7) · P-07 confirmar D-06/D-07/pago parcial con el administrador (no bloquea Fase 1, sí el flujo de captura de Fase 3) · P-08 saldo entre períodos (Fase 5) · P-09 traslados entre fondos (Fase 5) · D-10 flujo de gastos
+- P-03 tasa oficial (Fase 2) · P-04 fondo contable (Fase 5) · P-05 tamaño de la escuela (Fase 3) · P-07 confirmar D-06/D-07/pago parcial con el administrador (no bloquea Fase 1, sí el flujo de captura de Fase 3). P-06, P-08 y P-09 ya se resolvieron (ver D-22 y D-27 en `DECISIONES.md`).

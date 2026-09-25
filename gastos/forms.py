@@ -137,3 +137,19 @@ class ProveedorForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["rif"].required = False
         _marcar_clases(self)
+
+
+class FondoForm(forms.ModelForm):
+    """`es_general` no se edita aquí a propósito: ya hay exactamente un Fondo
+    General (creado por `seed_datos_iniciales`, protegido por la restricción
+    `un_solo_fondo_general`) y no tiene sentido cambiar cuál lo es desde esta
+    pantalla — eso, si algún día hiciera falta, se hace desde `/admin/`."""
+
+    class Meta:
+        model = Fondo
+        fields = ["nombre", "descripcion", "saldo_inicial_ves", "saldo_inicial_usd", "activo"]
+        widgets = {"descripcion": forms.TextInput()}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _marcar_clases(self)

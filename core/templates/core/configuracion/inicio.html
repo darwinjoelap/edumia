@@ -19,6 +19,15 @@
     </a>
   </div>
   <div class="col-md-4">
+    <a href="{% url 'core:usuario_lista' %}" class="quick-action h-100">
+      <span class="quick-action-icon"><i class="bi bi-people-fill"></i></span>
+      <div>
+        <div class="fw-semibold">Usuarios</div>
+        <div class="text-muted small">{{ total_usuarios }} usuario{{ total_usuarios|pluralize }} — crear docentes y otros roles</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-4">
     <a href="{% url 'core:grado_lista' %}" class="quick-action h-100">
       <span class="quick-action-icon"><i class="bi bi-layers-fill"></i></span>
       <div>
@@ -42,6 +51,15 @@
       <div>
         <div class="fw-semibold">Secciones</div>
         <div class="text-muted small">{{ total_secciones }} sección{{ total_secciones|pluralize:"es" }} registrada{{ total_secciones|pluralize }}</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-4">
+    <a href="{% url 'gastos:fondo_lista' %}" class="quick-action h-100">
+      <span class="quick-action-icon"><i class="bi bi-wallet2"></i></span>
+      <div>
+        <div class="fw-semibold">Fondos</div>
+        <div class="text-muted small">{{ total_fondos }} fondo{{ total_fondos|pluralize }} — crear y ajustar saldo inicial</div>
       </div>
     </a>
   </div>
@@ -123,6 +141,15 @@
       <div>
         <div class="fw-semibold">Proveedores</div>
         <div class="text-muted small">A quién se le compra o se le paga</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-4">
+    <a href="{% url 'core:bitacora_lista' %}" class="quick-action h-100">
+      <span class="quick-action-icon"><i class="bi bi-journal-text"></i></span>
+      <div>
+        <div class="fw-semibold">Bitácora de auditoría</div>
+        <div class="text-muted small">Quién hizo qué y cuándo: logins, verificaciones, anulaciones…</div>
       </div>
     </a>
   </div>

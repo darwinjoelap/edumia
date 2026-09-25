@@ -26,4 +26,18 @@ urlpatterns = [
         views.seccion_toggle_activa,
         name="seccion_toggle_activa",
     ),
+    path("configuracion/bitacora/", views.BitacoraListView.as_view(), name="bitacora_lista"),
+    path("configuracion/usuarios/", views.UsuarioListView.as_view(), name="usuario_lista"),
+    path("configuracion/usuarios/nuevo/", views.usuario_crear, name="usuario_crear"),
+    path("configuracion/usuarios/<int:pk>/editar/", views.usuario_editar, name="usuario_editar"),
+    path(
+        "configuracion/usuarios/<int:pk>/restablecer-clave/",
+        views.usuario_restablecer_clave,
+        name="usuario_restablecer_clave",
+    ),
+    path(
+        "configuracion/usuarios/<int:pk>/activar-desactivar/",
+        views.usuario_toggle_activo,
+        name="usuario_toggle_activo",
+    ),
 ]

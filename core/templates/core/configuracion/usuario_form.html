@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block titulo %}{% if usuario_obj %}Editar usuario{% else %}Nuevo usuario{% endif %} — Configuración{% endblock %}
+{% block titulo_topbar %}{% if usuario_obj %}Editar usuario{% else %}Nuevo usuario{% endif %}{% endblock %}
+{% block contenido %}
+<h1 class="h3 mb-4">{% if usuario_obj %}Editar usuario «{{ usuario_obj.username }}»{% else %}Nuevo usuario{% endif %}</h1>
+<div class="card card-edumia" style="max-width: 560px;">
+  <div class="card-body p-4">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% for field in form %}
+        {% if field.name == "is_active" %}
+          <div class="form-check mb-3">
+            {{ field }}
+            <label class="form-check-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          </div>
+        {% elif field.name == "fondo" %}
+          <div class="mb-3" id="bloque-fondo">
+            <label class="form-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+            {% if field.errors %}
+              <div class="text-danger small mt-1">{% for error in field.errors %}{{ error }}{% endfor %}</div>
+            {% endif %}
+          </div>
+        {% else %}
+          <div class="mb-3">
+            <label class="form-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+            {% if field.errors %}
+              <div class="text-danger small mt-1">{% for error in field.errors %}{{ error }}{% endfor %}</div>
+            {% endif %}
+          </div>
+        {% endif %}
+      {% endfor %}
+      {% if not usuario_obj %}
+        <p class="text-muted small">
+          <i class="bi bi-info-circle"></i> Esta contraseña es temporal: entrégasela directamente a la persona
+          (no se envía por correo). El sistema le va a pedir cambiarla la primera vez que entre.
+        </p>
+      {% endif %}
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">{% for error in form.non_field_errors %}{{ error }}{% endfor %}</div>
+      {% endif %}
+      <button type="submit" class="btn btn-edumia-primary">Guardar</button>
+      <a href="{% url 'core:usuario_lista' %}" class="btn btn-outline-secondary">Cancelar</a>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  (function () {
+    var selectRol = document.getElementById("{{ form.rol.id_for_label }}");
+    var bloqueFondo = document.getElementById("bloque-fondo");
+    if (!selectRol || !bloqueFondo) return;
+
+    function actualizar() {
+      bloqueFondo.style.display = selectRol.value === "responsable_fondo" ? "" : "none";
+    }
+
+    selectRol.addEventListener("change", actualizar);
+    actualizar();
+  })();
+</script>
+{% endblock %}

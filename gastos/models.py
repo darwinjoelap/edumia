@@ -27,6 +27,19 @@ class Fondo(models.Model):
         default=False, help_text="Exactamente un fondo debe tener esto en True: el Fondo General."
     )
     activo = models.BooleanField(default=True)
+    # Fase 8 (D-32): con qué saldo arranca el fondo en Edumia — lo que ya
+    # tenía la institución antes de empezar a usar el sistema. `saldo_fondo()`
+    # lo suma como punto de partida; no se recalcula solo ni se toca en cada
+    # aporte/gasto, así que corregirlo más adelante (si se cargó mal) es
+    # editar este campo, nunca inventar un aporte/gasto falso para cuadrarlo.
+    saldo_inicial_ves = models.DecimalField(
+        max_digits=18, decimal_places=4, default=Decimal("0"),
+        help_text="Saldo en bolívares con el que arranca el fondo (antes de cualquier aporte o gasto registrado aquí).",
+    )
+    saldo_inicial_usd = models.DecimalField(
+        max_digits=18, decimal_places=4, default=Decimal("0"),
+        help_text="Saldo en dólares con el que arranca el fondo. No se convierte con la tasa: es un monto aparte, igual que en los aportes y gastos.",
+    )
 
     class Meta:
         verbose_name = "fondo"

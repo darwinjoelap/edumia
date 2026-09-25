@@ -98,11 +98,22 @@ class RegistroAuditoria(models.Model):
         LOGIN = "login", "Inicio de sesión"
         LOGIN_FALLIDO = "login_fallido", "Inicio de sesión fallido"
         VERIFICAR = "verificar", "Verificación de aporte"
+        OBSERVAR = "observar", "Observación de aporte"
+        APROBAR = "aprobar", "Aprobación de gasto"
         ANULAR = "anular", "Anulación"
         EMITIR_RECIBO = "emitir_recibo", "Emisión de recibo"
         CARGAR_TASA = "cargar_tasa", "Carga de tasa de cambio"
+        EDITAR_TASA = "editar_tasa", "Corrección de tasa de cambio"
+        ACTIVAR_PERIODO = "activar_periodo", "Activación de período"
         CERRAR_PERIODO = "cerrar_periodo", "Cierre de período"
         REABRIR_PERIODO = "reabrir_periodo", "Reapertura de período"
+        CREAR_USUARIO = "crear_usuario", "Creación de usuario"
+        EDITAR_USUARIO = "editar_usuario", "Edición de usuario"
+        RESTABLECER_CLAVE = "restablecer_clave", "Restablecimiento de contraseña"
+        ACTIVAR_USUARIO = "activar_usuario", "Activación de usuario"
+        DESACTIVAR_USUARIO = "desactivar_usuario", "Desactivación de usuario"
+        CREAR_FONDO = "crear_fondo", "Creación de fondo"
+        AJUSTAR_SALDO_FONDO = "ajustar_saldo_fondo", "Ajuste de saldo inicial de fondo"
 
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,

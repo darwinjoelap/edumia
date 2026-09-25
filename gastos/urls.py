@@ -38,4 +38,7 @@ urlpatterns = [
         "configuracion/proveedores/<int:pk>/editar/",
         views.ProveedorUpdateView.as_view(), name="proveedor_editar",
     ),
+    path("configuracion/fondos/", views.FondoListView.as_view(), name="fondo_lista"),
+    path("configuracion/fondos/nuevo/", views.FondoCreateView.as_view(), name="fondo_crear"),
+    path("configuracion/fondos/<int:pk>/editar/", views.FondoUpdateView.as_view(), name="fondo_editar"),
 ]
