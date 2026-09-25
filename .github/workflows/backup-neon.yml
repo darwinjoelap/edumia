@@ -22,6 +22,12 @@ on:
 jobs:
   backup:
     runs-on: ubuntu-latest
+    # El GITHUB_TOKEN automático no trae permiso de escritura por defecto en
+    # este repo (depende de la configuración de Settings → Actions → General
+    # → Workflow permissions) — sin esto, "gh release create" devuelve
+    # HTTP 403: Resource not accessible by integration.
+    permissions:
+      contents: write
     steps:
       - name: Instalar cliente de PostgreSQL
         # El pg_dump de los repositorios normales de Ubuntu (versión 16) es más
