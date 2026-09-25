@@ -1,0 +1,79 @@
+name: Backup diario de Neon (producción)
+
+# Fase 8 (D-29): el plan gratuito de Neon no incluye backup automático, así
+# que este workflow hace un dump completo de la base de `production` todos
+# los días y lo guarda como un GitHub Release (no expira, a diferencia de
+# los artefactos normales de Actions, que sí se borran solos a los 90 días).
+#
+# Requiere un secreto del repositorio: NEON_DATABASE_URL_PRODUCTION, la
+# cadena de conexión de la rama `production` de Neon (Neon → Dashboard →
+# production → Connection string → "Pooled connection" o directa, con
+# `sslmode=require`). Se agrega en GitHub: Settings → Secrets and
+# variables → Actions → New repository secret. NUNCA se pega esa cadena
+# directamente en este archivo — el archivo es público en el repo.
+
+on:
+  schedule:
+    # 07:00 UTC = 03:00 en Venezuela (UTC-4). Corre de madrugada, cuando
+    # nadie está usando el sistema.
+    - cron: "0 7 * * *"
+  workflow_dispatch: {} # para poder correrlo a mano desde la pestaña "Actions" cuando haga falta.
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Instalar cliente de PostgreSQL
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends postgresql-client
+
+      - name: Verificar que el secreto esté configurado
+        run: |
+          if [ -z "${{ secrets.NEON_DATABASE_URL_PRODUCTION }}" ]; then
+            echo "::error::Falta el secreto NEON_DATABASE_URL_PRODUCTION (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+
+      - name: Dump de la base de datos
+        env:
+          DATABASE_URL: ${{ secrets.NEON_DATABASE_URL_PRODUCTION }}
+        run: |
+          set -e
+          FECHA=$(date -u +%Y-%m-%d)
+          echo "FECHA=$FECHA" >> "$GITHUB_ENV"
+          # -Fc: formato "custom" de pg_dump, comprimido y el único que
+          # admite pg_restore con --clean/--if-exists para restaurar limpio.
+          pg_dump "$DATABASE_URL" --no-owner --no-privileges -Fc -f "edumia-backup-$FECHA.dump"
+          ls -lh "edumia-backup-$FECHA.dump"
+
+      - name: Publicar como GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "backup-$FECHA" "edumia-backup-$FECHA.dump" \
+            --title "Backup Neon production — $FECHA" \
+            --notes "Backup automático diario (Fase 8, D-29). Generado por el workflow backup-neon.yml." \
+            --repo "${{ github.repository }}"
+
+      - name: Borrar backups de más de 30 días (no acumular para siempre)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import subprocess
+          from datetime import datetime, timedelta, timezone
+
+          salida = subprocess.run(
+              ["gh", "release", "list", "--limit", "200", "--json", "tagName,createdAt"],
+              capture_output=True, text=True, check=True,
+          ).stdout
+          limite = datetime.now(timezone.utc) - timedelta(days=30)
+          for release in json.loads(salida):
+              tag = release["tagName"]
+              if not tag.startswith("backup-"):
+                  continue
+              creado = datetime.strptime(release["createdAt"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+              if creado < limite:
+                  print(f"Borrando release antiguo: {tag} ({creado.date()})")
+                  subprocess.run(["gh", "release", "delete", tag, "--yes", "--cleanup-tag"], check=True)
+          PY
