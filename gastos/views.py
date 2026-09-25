@@ -19,9 +19,10 @@ from .forms import (
     GastoForm,
     ProductoForm,
     ProveedorForm,
+    TransferenciaFondoForm,
     UnidadMedidaForm,
 )
-from .models import CategoriaGasto, Fondo, Gasto, Producto, Proveedor, UnidadMedida
+from .models import CategoriaGasto, Fondo, Gasto, Producto, Proveedor, TransferenciaFondo, UnidadMedida
 from .services import saldo_fondo
 
 # Quién registra un gasto (además del superusuario).
@@ -32,6 +33,10 @@ ROLES_APROBACION = ("administrador",)
 
 # Quién administra los catálogos de Gastos desde Configuración.
 ROLES_CONFIGURACION = ("administrador",)
+
+# Quién puede mover dinero entre fondos (D-36): solo administrador, mismo
+# rol que ya crea/edita fondos y ajusta el saldo inicial (D-32).
+ROLES_TRANSFERENCIAS = ("administrador",)
 
 # Quién puede ver el historial completo de gastos (cualquier estado):
 # además de quienes registran/aprueban, se suman director y auditor, que
@@ -454,3 +459,60 @@ class FondoUpdateView(RolRequeridoMixin, UpdateView):
             )
         messages.success(self.request, f"Fondo «{self.object}» actualizado.")
         return respuesta
+
+
+# --- Transferencias entre fondos (D-36) -------------------------------------
+
+class TransferenciaFondoListView(RolRequeridoMixin, ListView):
+    roles_permitidos = ROLES_TRANSFERENCIAS
+    model = TransferenciaFondo
+    template_name = "gastos/transferencia_lista.html"
+    context_object_name = "transferencias"
+    paginate_by = 40
+    queryset = TransferenciaFondo.objects.select_related(
+        "fondo_origen", "fondo_destino", "registrado_por", "anulado_por",
+    )
+
+
+@requiere_rol(*ROLES_TRANSFERENCIAS)
+def transferencia_registrar(request):
+    """El formulario solo junta los datos; toda la validación real (fondos
+    distintos, saldo del origen) vive en `TransferenciaFondo.clean()`, así
+    que si algo falla, `form.is_valid()` ya trae el mensaje listo — no hace
+    falta capturar nada aparte acá."""
+    if request.method == "POST":
+        form = TransferenciaFondoForm(request.POST)
+        if form.is_valid():
+            transferencia = form.save(commit=False)
+            transferencia.registrado_por = request.user
+            transferencia.estado = TransferenciaFondo.Estado.REGISTRADA
+            transferencia.save()
+            registrar(
+                request, RegistroAuditoria.Accion.TRANSFERIR_FONDO,
+                modelo="TransferenciaFondo", objeto_id=transferencia.pk, descripcion=str(transferencia),
+            )
+            messages.success(request, f"Transferencia registrada: {transferencia}.")
+            return redirect("gastos:transferencia_lista")
+    else:
+        form = TransferenciaFondoForm(initial={"fecha": timezone.now().date()})
+    return render(request, "gastos/transferencia_form.html", {"form": form})
+
+
+@requiere_rol(*ROLES_TRANSFERENCIAS)
+def transferencia_anular(request, pk):
+    transferencia = get_object_or_404(TransferenciaFondo, pk=pk)
+    if request.method == "POST":
+        motivo = request.POST.get("motivo", "").strip()
+        try:
+            transferencia.transicionar(TransferenciaFondo.Estado.ANULADA, request.user, motivo=motivo)
+            registrar(
+                request, RegistroAuditoria.Accion.ANULAR,
+                modelo="TransferenciaFondo", objeto_id=transferencia.pk, descripcion=motivo,
+            )
+            messages.success(request, f"Transferencia «{transferencia}» anulada.")
+            return redirect("gastos:transferencia_lista")
+        except ValidationError as e:
+            messages.error(request, _mensajes_error(e))
+    return render(request, "gastos/transferencia_motivo.html", {
+        "transferencia": transferencia, "titulo": "Anular transferencia", "boton": "Anular transferencia",
+    })

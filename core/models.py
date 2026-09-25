@@ -114,6 +114,7 @@ class RegistroAuditoria(models.Model):
         DESACTIVAR_USUARIO = "desactivar_usuario", "Desactivación de usuario"
         CREAR_FONDO = "crear_fondo", "Creación de fondo"
         AJUSTAR_SALDO_FONDO = "ajustar_saldo_fondo", "Ajuste de saldo inicial de fondo"
+        TRANSFERIR_FONDO = "transferir_fondo", "Transferencia entre fondos"
 
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,

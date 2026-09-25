@@ -12,7 +12,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Q, Sum
+from django.db.models import F, Q, Sum
 from django.utils import timezone
 from simple_history.models import HistoricalRecords
 
@@ -53,6 +53,105 @@ class Fondo(models.Model):
 
     def __str__(self):
         return self.nombre
+
+
+class TransferenciaFondo(models.Model):
+    """Movimiento de dinero entre dos fondos propios de la institución (Fase
+    8, D-36) — p.ej. «General» a «Caja chica». No es un ingreso ni un gasto
+    real (no entra ni sale dinero de la institución, solo cambia de fondo),
+    así que vive en su propio modelo en vez de fabricar un `Aporte`/`Gasto`
+    falso para moverlo — eso ensuciaría los reportes y las listas de
+    Ingresos/Gastos (D-34) con movimientos que no son ingresos ni gastos de
+    verdad. Una sola moneda por transferencia, igual que el resto del
+    sistema (D-02): nunca se convierte Bs. a USD ni viceversa."""
+
+    class Estado(models.TextChoices):
+        REGISTRADA = "registrada", "Registrada"
+        ANULADA = "anulada", "Anulada"
+
+    fondo_origen = models.ForeignKey(Fondo, on_delete=models.PROTECT, related_name="transferencias_salida")
+    fondo_destino = models.ForeignKey(Fondo, on_delete=models.PROTECT, related_name="transferencias_entrada")
+    monto = models.DecimalField(max_digits=18, decimal_places=4)
+    moneda = models.CharField(max_length=3, choices=MontoBimonedaMixin.Moneda.choices)
+    fecha = models.DateField()
+    motivo = models.CharField(max_length=200, help_text="Para qué se mueve el dinero, ej: «Reponer caja chica».")
+
+    estado = models.CharField(max_length=10, choices=Estado.choices, default=Estado.REGISTRADA)
+    registrado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="transferencias_registradas",
+    )
+    fecha_registro = models.DateTimeField(auto_now_add=True)
+    # Igual que en Gasto: dejar el fondo de origen en negativo avisa y pide
+    # confirmación explícita, no bloquea.
+    saldo_negativo_confirmado = models.BooleanField(default=False)
+
+    motivo_anulacion = models.TextField(blank=True)
+    anulado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT,
+        related_name="transferencias_anuladas",
+    )
+    fecha_anulacion = models.DateTimeField(null=True, blank=True)
+
+    history = HistoricalRecords()
+
+    class Meta:
+        verbose_name = "transferencia entre fondos"
+        verbose_name_plural = "transferencias entre fondos"
+        constraints = [
+            models.CheckConstraint(check=Q(monto__gt=0), name="transferenciafondo_monto_positivo"),
+            models.CheckConstraint(
+                check=~Q(fondo_origen=F("fondo_destino")), name="transferenciafondo_fondos_distintos",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["fondo_origen", "estado"]),
+            models.Index(fields=["fondo_destino", "estado"]),
+        ]
+        ordering = ["-fecha", "-fecha_registro"]
+
+    def __str__(self):
+        return f"{self.fondo_origen} → {self.fondo_destino}: {self.monto} {self.moneda}"
+
+    def clean(self):
+        errores = {}
+        if self.fondo_origen_id and self.fondo_destino_id and self.fondo_origen_id == self.fondo_destino_id:
+            errores["fondo_destino"] = "El fondo de destino debe ser distinto del de origen."
+
+        if not errores.get("fondo_destino") and self.fondo_origen_id and self.moneda and self.monto:
+            from .services import saldo_fondo
+
+            saldo_ves, saldo_usd = saldo_fondo(self.fondo_origen)
+            saldo_actual = saldo_ves if self.moneda == MontoBimonedaMixin.Moneda.VES else saldo_usd
+            saldo_proyectado = saldo_actual - self.monto
+            if saldo_proyectado < 0 and not self.saldo_negativo_confirmado:
+                errores["monto"] = (
+                    f"Esta transferencia deja «{self.fondo_origen}» en saldo negativo "
+                    f"({saldo_proyectado} {self.moneda}). Confirma explícitamente si quieres continuar."
+                )
+
+        if errores:
+            raise ValidationError(errores)
+
+    # --- Máquina de estados (solo dos: registrada → anulada) -----------------
+
+    _TRANSICIONES = {
+        Estado.REGISTRADA: {Estado.ANULADA},
+    }
+
+    def transicionar(self, nuevo_estado, usuario, motivo=None):
+        if nuevo_estado not in self._TRANSICIONES.get(self.estado, set()):
+            raise ValidationError(
+                f"No se puede pasar de «{self.get_estado_display()}» a «{self.Estado(nuevo_estado).label}»."
+            )
+        if nuevo_estado == self.Estado.ANULADA:
+            if not motivo:
+                raise ValidationError({"motivo": "Indica el motivo de la anulación."})
+            self.motivo_anulacion = motivo
+            self.anulado_por = usuario
+            self.fecha_anulacion = timezone.now()
+
+        self.estado = nuevo_estado
+        self.save()
 
 
 class UnidadMedida(models.Model):

@@ -46,4 +46,9 @@ urlpatterns = [
     path("configuracion/fondos/", views.FondoListView.as_view(), name="fondo_lista"),
     path("configuracion/fondos/nuevo/", views.FondoCreateView.as_view(), name="fondo_crear"),
     path("configuracion/fondos/<int:pk>/editar/", views.FondoUpdateView.as_view(), name="fondo_editar"),
+
+    # Transferencias entre fondos (D-36)
+    path("transferencias/", views.TransferenciaFondoListView.as_view(), name="transferencia_lista"),
+    path("transferencias/nueva/", views.transferencia_registrar, name="transferencia_registrar"),
+    path("transferencias/<int:pk>/anular/", views.transferencia_anular, name="transferencia_anular"),
 ]

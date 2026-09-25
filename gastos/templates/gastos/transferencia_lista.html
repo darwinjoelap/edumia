@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block titulo %}Transferencias entre fondos — Edumia{% endblock %}
+{% block titulo_topbar %}Transferencias entre fondos{% endblock %}
+{% block contenido %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+  <div>
+    <h1 class="h3 mb-1">Transferencias entre fondos</h1>
+    <p class="text-muted mb-0">Movimientos de dinero de un fondo a otro — no son ingresos ni gastos.</p>
+  </div>
+  <a href="{% url 'gastos:transferencia_registrar' %}" class="btn btn-edumia-primary btn-sm">
+    <i class="bi bi-arrow-left-right"></i> Nueva transferencia
+  </a>
+</div>
+
+<div class="card card-edumia">
+  {% if transferencias %}
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead>
+        <tr>
+          <th>Fecha</th><th>De</th><th>A</th><th>Monto</th><th>Motivo</th>
+          <th>Registrada por</th><th>Estado</th><th class="text-end">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for t in transferencias %}
+        <tr>
+          <td>{{ t.fecha }}</td>
+          <td>{{ t.fondo_origen }}</td>
+          <td>{{ t.fondo_destino }}</td>
+          <td>{{ t.monto }} {{ t.moneda }}</td>
+          <td class="small">{{ t.motivo }}</td>
+          <td>{{ t.registrado_por }}</td>
+          <td>
+            {% if t.estado == "anulada" %}
+              <span class="badge text-bg-danger">{{ t.get_estado_display }}</span>
+            {% else %}
+              <span class="badge text-bg-success">{{ t.get_estado_display }}</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            {% if t.estado == "registrada" %}
+            <a href="{% url 'gastos:transferencia_anular' t.pk %}" class="btn btn-sm btn-outline-danger">
+              <i class="bi bi-x-circle"></i> Anular
+            </a>
+            {% else %}
+            <span class="text-muted small">{{ t.motivo_anulacion|truncatechars:40 }}</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if is_paginated %}
+  <div class="card-body py-2">
+    <nav class="d-flex justify-content-between">
+      {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-sm btn-outline-secondary">« Más recientes</a>
+      {% else %}<span></span>{% endif %}
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="btn btn-sm btn-outline-secondary">Más antiguas »</a>
+      {% endif %}
+    </nav>
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-arrow-left-right d-block mb-2"></i>
+    No hay transferencias registradas todavía.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

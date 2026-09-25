@@ -2,7 +2,7 @@ from django import forms
 
 from cambio.models import TasaCambio
 
-from .models import CategoriaGasto, DetalleGasto, Fondo, Gasto, Producto, Proveedor, UnidadMedida
+from .models import CategoriaGasto, DetalleGasto, Fondo, Gasto, Producto, Proveedor, TransferenciaFondo, UnidadMedida
 
 
 def _marcar_clases(form, selects=()):
@@ -141,6 +141,30 @@ class ProveedorForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["rif"].required = False
         _marcar_clases(self)
+
+
+class TransferenciaFondoForm(forms.ModelForm):
+    """La validación real (fondos distintos, saldo negativo del origen) vive
+    en `TransferenciaFondo.clean()` — igual que `DetalleGastoForm`, el
+    formulario solo acota los querysets y deja el mensaje salir del modelo."""
+
+    class Meta:
+        model = TransferenciaFondo
+        fields = ["fecha", "fondo_origen", "fondo_destino", "monto", "moneda", "motivo", "saldo_negativo_confirmado"]
+        widgets = {
+            "fecha": forms.DateInput(attrs={"type": "date"}),
+            "motivo": forms.TextInput(attrs={"placeholder": "Ej: Reponer caja chica para gastos menores"}),
+        }
+        labels = {
+            "saldo_negativo_confirmado": "Confirmo la transferencia aunque deje el fondo de origen en negativo",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["fondo_origen"].queryset = Fondo.objects.filter(activo=True).order_by("nombre")
+        self.fields["fondo_destino"].queryset = Fondo.objects.filter(activo=True).order_by("nombre")
+        self.fields["saldo_negativo_confirmado"].required = False
+        _marcar_clases(self, selects=("fondo_origen", "fondo_destino", "moneda"))
 
 
 class FondoForm(forms.ModelForm):

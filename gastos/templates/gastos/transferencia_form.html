@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block titulo %}Transferir entre fondos — Edumia{% endblock %}
+{% block titulo_topbar %}Transferir entre fondos{% endblock %}
+{% block contenido %}
+
+<div class="mb-4">
+  <h1 class="h3 mb-1">Transferir entre fondos</h1>
+  <p class="text-muted mb-0">
+    Mueve dinero de un fondo a otro (ej: de «General» a «Caja chica»). No es un ingreso ni un gasto:
+    el total de la institución no cambia, solo de qué fondo sale y a cuál entra.
+  </p>
+</div>
+
+{% if form.non_field_errors %}
+  <div class="alert alert-danger">
+    {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+  </div>
+{% endif %}
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="card card-edumia mb-3" style="max-width: 640px;">
+    <div class="card-body p-4">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.fondo_origen.id_for_label }}">{{ form.fondo_origen.label }}</label>
+          {{ form.fondo_origen }}
+          {% if form.fondo_origen.errors %}<div class="text-danger small mt-1">{% for error in form.fondo_origen.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.fondo_destino.id_for_label }}">{{ form.fondo_destino.label }}</label>
+          {{ form.fondo_destino }}
+          {% if form.fondo_destino.errors %}<div class="text-danger small mt-1">{% for error in form.fondo_destino.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.monto.id_for_label }}">{{ form.monto.label }}</label>
+          {{ form.monto }}
+          {% if form.monto.errors %}<div class="text-danger small mt-1">{% for error in form.monto.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.moneda.id_for_label }}">{{ form.moneda.label }}</label>
+          {{ form.moneda }}
+          {% if form.moneda.errors %}<div class="text-danger small mt-1">{% for error in form.moneda.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="form-label fw-semibold" for="{{ form.fecha.id_for_label }}">{{ form.fecha.label }}</label>
+          {{ form.fecha }}
+          {% if form.fecha.errors %}<div class="text-danger small mt-1">{% for error in form.fecha.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold" for="{{ form.motivo.id_for_label }}">{{ form.motivo.label }}</label>
+        {{ form.motivo }}
+        {% if form.motivo.errors %}<div class="text-danger small mt-1">{% for error in form.motivo.errors %}{{ error }}{% endfor %}</div>{% endif %}
+      </div>
+      <div class="form-check">
+        {{ form.saldo_negativo_confirmado }}
+        <label class="form-check-label small" for="{{ form.saldo_negativo_confirmado.id_for_label }}">
+          {{ form.saldo_negativo_confirmado.label }}
+        </label>
+      </div>
+      <p class="text-muted small mt-2 mb-0">
+        Si el fondo de origen no tiene saldo suficiente en esa moneda, el sistema lo avisa: marca esta
+        casilla y vuelve a guardar si de todas formas quieres continuar.
+      </p>
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-edumia-primary">Registrar transferencia</button>
+  <a href="{% url 'gastos:transferencia_lista' %}" class="btn btn-outline-secondary">Cancelar</a>
+</form>
+{% endblock %}

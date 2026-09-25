@@ -83,6 +83,11 @@
         <a class="nav-link {% if request.resolver_match.url_name == 'gasto_lista' %}active{% endif %}" href="{% url 'gastos:gasto_lista' %}">
           <i class="bi bi-card-list"></i> Todos los gastos
         </a>
+        {% if user.is_superuser or user.perfilusuario.rol == "administrador" %}
+        <a class="nav-link {% if 'transferencia' in request.resolver_match.url_name|default:'' %}active{% endif %}" href="{% url 'gastos:transferencia_lista' %}">
+          <i class="bi bi-arrow-left-right"></i> Transferir entre fondos
+        </a>
+        {% endif %}
         {% endif %}
 
         {% if user.is_superuser or user.perfilusuario.rol == "administrador" or user.perfilusuario.rol == "responsable_fondo" or user.perfilusuario.rol == "director" or user.perfilusuario.rol == "auditor" %}
