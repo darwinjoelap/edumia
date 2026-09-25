@@ -129,7 +129,7 @@ def gasto_detalle(request, pk):
     ) in ROLES_APROBACION
     return render(request, "gastos/gasto_detalle.html", {
         "gasto": gasto,
-        "renglones": gasto.renglones.select_related("producto", "unidad"),
+        "renglones": gasto.renglones.select_related("producto__categoria", "categoria", "unidad"),
         "saldo_ves": saldo_ves,
         "saldo_usd": saldo_usd,
         "puede_aprobar": puede_aprobar,

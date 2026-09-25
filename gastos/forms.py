@@ -69,19 +69,23 @@ class DetalleGastoForm(forms.ModelForm):
 
     class Meta:
         model = DetalleGasto
-        fields = ["producto", "descripcion", "cantidad", "unidad", "precio_unitario"]
+        fields = ["producto", "descripcion", "categoria", "cantidad", "unidad", "precio_unitario"]
         widgets = {
             "descripcion": forms.TextInput(attrs={"placeholder": "Si el producto no está en el catálogo"}),
         }
+        labels = {"categoria": "Categoría (si no hay producto)"}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["producto"].queryset = Producto.objects.filter(activo=True).order_by("nombre")
         self.fields["producto"].required = False
         self.fields["descripcion"].required = False
+        self.fields["categoria"].queryset = CategoriaGasto.objects.filter(activo=True).order_by("nombre")
+        self.fields["categoria"].required = False
+        self.fields["categoria"].empty_label = "Sin categoría"
         self.fields["unidad"].queryset = UnidadMedida.objects.order_by("nombre")
         for nombre, field in self.fields.items():
-            es_select = nombre in ("producto", "unidad")
+            es_select = nombre in ("producto", "unidad", "categoria")
             field.widget.attrs.setdefault(
                 "class", "form-select form-select-sm" if es_select else "form-control form-control-sm",
             )

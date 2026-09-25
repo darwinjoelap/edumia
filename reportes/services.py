@@ -95,33 +95,42 @@ def ingresos_por_estudiante(desde, hasta, grado=None, seccion=None, solo_verific
 # --- Reporte: gastos por categoría/producto ----------------------------------
 
 def gastos_por_categoria_producto(desde, hasta, fondo=None, categoria=None, producto=None):
+    """Agrupa por categoría "efectiva": la del producto si hay producto, o
+    la que se haya elegido a mano en el renglón (D-35) si es descripción
+    libre — un `Coalesce` de las dos, para que un gasto sin producto pero
+    con categoría elegida no caiga en "Sin categoría" solo porque no está
+    en el catálogo."""
     qs = DetalleGasto.objects.filter(
         gasto__estado=Gasto.Estado.APROBADO, gasto__fecha__gte=desde, gasto__fecha__lte=hasta,
+    ).annotate(
+        categoria_efectiva_id=Coalesce("producto__categoria_id", "categoria_id"),
+        categoria_efectiva_nombre=Coalesce("producto__categoria__nombre", "categoria__nombre"),
     )
     if fondo:
         qs = qs.filter(gasto__fondo=fondo)
     if categoria:
-        qs = qs.filter(producto__categoria=categoria)
+        qs = qs.filter(categoria_efectiva_id=categoria.pk)
     if producto:
         qs = qs.filter(producto=producto)
 
     filas = (
         qs.values(
-            "producto__categoria_id",
-            "producto__categoria__nombre",
+            "categoria_efectiva_id",
+            "categoria_efectiva_nombre",
             "producto__id",
             "producto__nombre",
         )
         .annotate(
             total_ves=Sum("subtotal_ves"), total_usd=Sum("subtotal_usd"), cantidad=Sum("cantidad"),
         )
-        .order_by("producto__categoria__nombre", "producto__nombre")
+        .order_by("categoria_efectiva_nombre", "producto__nombre")
     )
-    # Renglones sin producto (solo descripción libre) quedan agrupados aparte.
+    # Renglones sin producto y sin categoría elegida quedan agrupados aparte.
     for fila in filas:
-        if fila["producto__categoria__nombre"] is None:
-            fila["producto__categoria__nombre"] = "Sin categoría / sin producto"
-            fila["producto__nombre"] = fila["producto__nombre"] or "(descripción libre)"
+        if fila["categoria_efectiva_nombre"] is None:
+            fila["categoria_efectiva_nombre"] = "Sin categoría / sin producto"
+        if fila["producto__nombre"] is None:
+            fila["producto__nombre"] = "(descripción libre)"
 
     totales = qs.aggregate(total_ves=Sum("subtotal_ves"), total_usd=Sum("subtotal_usd"))
     return list(filas), totales

@@ -56,7 +56,7 @@
         <tr><th>Categoría</th><th>Producto</th><th class="text-end">Cantidad</th><th class="text-end">Total Bs.</th><th class="text-end">Total $</th></tr>
       </thead>
       <tbody>
-      {% regroup filas by producto__categoria__nombre as por_categoria %}
+      {% regroup filas by categoria_efectiva_nombre as por_categoria %}
       {% for grupo in por_categoria %}
         {% for fila in grupo.list %}
         <tr>

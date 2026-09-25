@@ -141,7 +141,7 @@ def gastos_categorias(request):
         encabezados = ["Categoría", "Producto", "Cantidad", "Total Bs.", "Total $"]
         cuerpo = [
             [
-                f["producto__categoria__nombre"] or "Sin categoría",
+                f["categoria_efectiva_nombre"] or "Sin categoría",
                 f["producto__nombre"] or "(descripción libre)",
                 float(f["cantidad"] or 0),
                 float(f["total_ves"] or 0),
@@ -156,7 +156,7 @@ def gastos_categorias(request):
         encabezados = ["Categoría", "Producto", "Cantidad", "Total Bs.", "Total $"]
         cuerpo = [
             [
-                f["producto__categoria__nombre"] or "Sin categoría",
+                f["categoria_efectiva_nombre"] or "Sin categoría",
                 f["producto__nombre"] or "(descripción libre)",
                 str(f["cantidad"] or 0),
                 pdf._fmt(f["total_ves"]),

@@ -349,6 +349,11 @@ class DetalleGasto(models.Model):
         Producto, null=True, blank=True, on_delete=models.PROTECT, related_name="renglones_gasto",
     )
     descripcion = models.CharField(max_length=200, blank=True)
+    categoria = models.ForeignKey(
+        CategoriaGasto, null=True, blank=True, on_delete=models.PROTECT, related_name="renglones_gasto",
+        help_text="Solo para cuando el producto no está en el catálogo (si hay producto, la categoría "
+        "se toma de ahí). Opcional: sin ella, el renglón queda «Sin categoría» en los reportes.",
+    )
     cantidad = models.DecimalField(max_digits=12, decimal_places=3)
     unidad = models.ForeignKey(UnidadMedida, on_delete=models.PROTECT, related_name="renglones_gasto")
     precio_unitario = models.DecimalField(max_digits=18, decimal_places=4)
@@ -381,6 +386,14 @@ class DetalleGasto(models.Model):
 
         if self.producto_id and not self.unidad_id:
             self.unidad = self.producto.unidad_default
+
+        # La categoría "libre" solo aplica cuando no hay producto (si lo hay,
+        # la categoría real es producto.categoria) — se limpia sola para que
+        # nunca queden las dos guardadas a la vez, aunque el formulario haya
+        # llegado con algo en ese campo de una fila que se editó y luego se
+        # le agregó un producto.
+        if self.producto_id:
+            self.categoria = None
 
         self.subtotal = (Decimal(self.cantidad) * Decimal(self.precio_unitario)).quantize(
             Decimal("0.0001"), rounding=ROUND_HALF_UP,

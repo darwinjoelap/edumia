@@ -8,6 +8,10 @@
     {{ form.descripcion }}
     {% if form.descripcion.errors %}<div class="text-danger small mt-1">{% for error in form.descripcion.errors %}{{ error }}{% endfor %}</div>{% endif %}
   </td>
+  <td style="min-width:150px;">
+    {{ form.categoria }}
+    {% if form.categoria.errors %}<div class="text-danger small mt-1">{% for error in form.categoria.errors %}{{ error }}{% endfor %}</div>{% endif %}
+  </td>
   <td style="max-width:110px;">
     {{ form.cantidad }}
     {% if form.cantidad.errors %}<div class="text-danger small mt-1">{% for error in form.cantidad.errors %}{{ error }}{% endfor %}</div>{% endif %}
@@ -28,5 +32,5 @@
   </td>
 </tr>
 {% if form.non_field_errors %}
-<tr><td colspan="6" class="text-danger small">{% for error in form.non_field_errors %}{{ error }}{% endfor %}</td></tr>
+<tr><td colspan="7" class="text-danger small">{% for error in form.non_field_errors %}{{ error }}{% endfor %}</td></tr>
 {% endif %}

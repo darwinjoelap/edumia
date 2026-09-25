@@ -52,11 +52,12 @@
     <h2 class="h6 text-uppercase text-muted mb-3">Renglones</h2>
     <div class="table-responsive">
       <table class="table align-middle mb-0">
-        <thead><tr><th>Producto</th><th>Cantidad</th><th>Unidad</th><th>Precio unitario</th><th class="text-end">Subtotal</th></tr></thead>
+        <thead><tr><th>Producto</th><th>Categoría</th><th>Cantidad</th><th>Unidad</th><th>Precio unitario</th><th class="text-end">Subtotal</th></tr></thead>
         <tbody>
         {% for renglon in renglones %}
           <tr>
             <td>{{ renglon.producto|default:renglon.descripcion }}</td>
+            <td>{{ renglon.producto.categoria|default:renglon.categoria|default:"—" }}</td>
             <td>{{ renglon.cantidad }}</td>
             <td>{{ renglon.unidad.abreviatura }}</td>
             <td>{{ renglon.precio_unitario }}</td>
