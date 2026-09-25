@@ -27,18 +27,20 @@
   <aside class="offcanvas-lg offcanvas-start edumia-sidebar" tabindex="-1" id="edumiaSidebar">
     <div class="sidebar-inner">
       <div class="edumia-sidebar-brand">
-        <img src="{% static 'img/logo.png' %}" alt="Edumia">
-        <div>
-          <div class="brand-name">Edumia</div>
-          <span class="brand-tag">Ingresos y gastos</span>
-        </div>
+        <a href="{% url 'inicio' %}" class="d-flex align-items-center gap-2 text-decoration-none flex-grow-1">
+          <img src="{% static 'img/logo.png' %}" alt="Edumia">
+          <div>
+            <div class="brand-name">Edumia</div>
+            <span class="brand-tag">Ingresos y gastos</span>
+          </div>
+        </a>
         <button type="button" class="btn-close btn-close-white ms-auto d-lg-none" data-bs-dismiss="offcanvas" data-bs-target="#edumiaSidebar" aria-label="Cerrar"></button>
       </div>
 
       <nav class="edumia-nav">
         <div class="edumia-nav-heading">Panel</div>
         <a class="nav-link {% if request.resolver_match.view_name == 'inicio' %}active{% endif %}" href="{% url 'inicio' %}">
-          <i class="bi bi-speedometer2"></i> Dashboard
+          <i class="bi bi-speedometer2"></i> Panel principal
         </a>
 
         <div class="edumia-nav-heading">Académico</div>
