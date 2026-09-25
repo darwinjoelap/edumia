@@ -24,7 +24,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Instalar cliente de PostgreSQL
-        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends postgresql-client
+        # El pg_dump de los repositorios normales de Ubuntu (versión 16) es más
+        # viejo que el servidor de Neon (versión 18) y `pg_dump` se niega a
+        # correr contra un servidor más nuevo que él ("server version mismatch").
+        # Por eso se agrega el repositorio oficial de PostgreSQL (PGDG) e
+        # instala el cliente 18 en vez del que trae Ubuntu por defecto.
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends wget ca-certificates gnupg lsb-release
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo wget -q -O /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends postgresql-client-18
 
       - name: Verificar que el secreto esté configurado
         run: |
