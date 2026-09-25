@@ -55,10 +55,13 @@
         {% if user.is_superuser or user.perfilusuario.rol == "administrador" or user.perfilusuario.rol == "responsable_fondo" %}
         <div class="edumia-nav-heading">Ingresos</div>
         <a class="nav-link {% if request.resolver_match.url_name == 'aporte_registrar' %}active{% endif %}" href="{% url 'ingresos:aporte_registrar' %}">
-          <i class="bi bi-plus-circle-fill"></i> Registrar aporte
+          <i class="bi bi-plus-circle-fill"></i> Registrar ingreso
         </a>
         <a class="nav-link {% if request.resolver_match.url_name == 'aporte_bandeja' %}active{% endif %}" href="{% url 'ingresos:aporte_bandeja' %}">
           <i class="bi bi-inbox-fill"></i> Bandeja de verificación
+        </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'aporte_buscar' %}active{% endif %}" href="{% url 'ingresos:aporte_buscar' %}">
+          <i class="bi bi-search"></i> Buscar aporte
         </a>
         {% endif %}
 

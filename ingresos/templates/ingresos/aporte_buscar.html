@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block titulo %}Buscar aporte — Edumia{% endblock %}
+{% block titulo_topbar %}Buscar aporte{% endblock %}
+{% block contenido %}
+
+<div class="mb-4">
+  <h1 class="h3 mb-1">Buscar aporte</h1>
+  <p class="text-muted mb-0">Por número de referencia, cédula del titular o teléfono del emisor.</p>
+</div>
+
+<form method="get" class="mb-4 d-flex gap-2" style="max-width: 480px;">
+  <input type="text" name="q" value="{{ query }}" class="form-control"
+         placeholder="Referencia, cédula o teléfono" autofocus>
+  <button type="submit" class="btn btn-edumia-primary"><i class="bi bi-search"></i> Buscar</button>
+</form>
+
+{% if query %}
+<div class="card card-edumia">
+  {% if aportes %}
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead>
+        <tr>
+          <th>Concepto</th><th>Estudiante / origen</th><th>Monto</th><th>Referencia</th>
+          <th>Cédula</th><th>Teléfono</th><th>Fecha de pago</th><th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for aporte in aportes %}
+        <tr>
+          <td>{{ aporte.concepto|default:aporte.concepto_libre }}</td>
+          <td>
+            {% if aporte.inscripcion %}{{ aporte.inscripcion.estudiante }}{% else %}{{ aporte.entregado_por_nombre|default:aporte.entregado_por|default:"—" }}{% endif %}
+          </td>
+          <td>{{ aporte.monto }} {{ aporte.moneda }}</td>
+          <td>{{ aporte.referencia|default:"—" }}</td>
+          <td>{{ aporte.cedula_titular|default:"—" }}</td>
+          <td>{{ aporte.telefono_emisor|default:"—" }}</td>
+          <td>{{ aporte.fecha_pago }}</td>
+          <td>
+            <span class="badge text-bg-secondary">{{ aporte.get_estado_display }}</span>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-search d-block mb-2"></i>
+    No se encontró ningún aporte con «{{ query }}».
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

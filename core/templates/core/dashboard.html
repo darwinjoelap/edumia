@@ -218,6 +218,11 @@
             <a href="{% url 'academico:alta_rapida_seccion' seccion.pk %}" class="btn btn-sm btn-outline-secondary">
               <i class="bi bi-person-plus"></i> Alta rápida
             </a>
+            {% if puede_registrar_ingresos or user.perfilusuario.rol == "docente" %}
+            <a href="{% url 'ingresos:aporte_registrar_lote' seccion.pk %}" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-collection"></i> Registrar aportes
+            </a>
+            {% endif %}
           </td>
         </tr>
       {% endfor %}

@@ -1,12 +1,12 @@
 from django import forms
+from django.utils import timezone
 
-from academico.models import Inscripcion, Representante
+from academico.models import Grado, Inscripcion, Representante
 from cambio.models import TasaCambio
 from core.models import PeriodoEscolar
-
 from gastos.models import Fondo
 
-from .models import Aporte, Banco, ConceptoIngreso, FormaPago
+from .models import Aporte, Banco, ConceptoIngreso, FormaPago, MontoConcepto
 
 
 class AporteForm(forms.ModelForm):
@@ -152,3 +152,109 @@ class FormaPagoForm(forms.ModelForm):
                 continue
             es_select = nombre == "moneda_fija"
             field.widget.attrs.setdefault("class", "form-select" if es_select else "form-control")
+
+
+class MontoConceptoForm(forms.ModelForm):
+    """Monto esperado de un concepto para un grado y período (D-07): se usa
+    para la validación de desviación en `Aporte.clean()` — sin esta fila, se
+    cae a `concepto.monto_sugerido` (o no se valida desviación)."""
+
+    class Meta:
+        model = MontoConcepto
+        fields = ["concepto", "grado", "periodo", "monto", "moneda"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["concepto"].queryset = ConceptoIngreso.objects.filter(activo=True).order_by("nombre")
+        self.fields["grado"].queryset = Grado.objects.order_by("orden")
+        self.fields["periodo"].queryset = PeriodoEscolar.objects.order_by("-fecha_inicio")
+        for nombre, field in self.fields.items():
+            es_select = nombre in ("concepto", "grado", "periodo", "moneda")
+            field.widget.attrs.setdefault("class", "form-select" if es_select else "form-control")
+
+
+class AporteLoteEncabezadoForm(forms.Form):
+    """Datos comunes a todos los aportes de un lote (registro por sección,
+    para el docente): mismo concepto, forma de pago, fecha y moneda para
+    todos los estudiantes que pagaron ese día. Lo que varía por estudiante
+    (monto, referencia, etc.) va en `AporteLoteFilaForm`."""
+
+    concepto = forms.ModelChoiceField(
+        queryset=ConceptoIngreso.objects.none(), required=False, label="Concepto",
+    )
+    concepto_libre = forms.CharField(
+        max_length=150, required=False, label="Concepto (no está en la lista)",
+    )
+    mes_cubierto = forms.DateField(
+        required=False, widget=forms.DateInput(attrs={"type": "date"}), label="Período que cubre",
+    )
+    moneda = forms.ChoiceField(choices=Aporte.Moneda.choices, label="Moneda")
+    tasa = forms.ModelChoiceField(queryset=TasaCambio.objects.none(), label="Tasa")
+    forma_pago = forms.ModelChoiceField(queryset=FormaPago.objects.none(), label="Forma de pago")
+    fecha_pago = forms.DateField(widget=forms.DateInput(attrs={"type": "date"}), label="Fecha de pago")
+    banco_destino = forms.ModelChoiceField(
+        queryset=Banco.objects.none(), required=False, label="Banco destino",
+    )
+    entregado_por_nombre = forms.CharField(
+        max_length=150, required=False, label="Entregado por",
+        help_text="Quién le entrega el dinero recolectado al fondo (normalmente el docente).",
+    )
+
+    def __init__(self, *args, **kwargs):
+        entregado_por_inicial = kwargs.pop("entregado_por_inicial", "")
+        super().__init__(*args, **kwargs)
+        self.fields["concepto"].queryset = ConceptoIngreso.objects.filter(activo=True).order_by("nombre")
+        self.fields["forma_pago"].queryset = FormaPago.objects.filter(activo=True).order_by("nombre")
+        self.fields["banco_destino"].queryset = Banco.objects.filter(activo=True).order_by("nombre")
+
+        tasas_recientes = TasaCambio.objects.order_by("-fecha", "-creada_en")[:30]
+        self.fields["tasa"].queryset = TasaCambio.objects.filter(pk__in=[t.pk for t in tasas_recientes])
+        if tasas_recientes and not self.is_bound:
+            self.fields["tasa"].initial = tasas_recientes[0].pk
+
+        if not self.is_bound:
+            self.fields["fecha_pago"].initial = timezone.localdate()
+            self.fields["entregado_por_nombre"].initial = entregado_por_inicial
+
+        for nombre, field in self.fields.items():
+            es_select = nombre in ("concepto", "moneda", "tasa", "forma_pago", "banco_destino")
+            field.widget.attrs.setdefault("class", "form-select" if es_select else "form-control")
+
+    def clean(self):
+        cleaned = super().clean()
+        concepto = cleaned.get("concepto")
+        concepto_libre = cleaned.get("concepto_libre")
+        if concepto and concepto_libre:
+            self.add_error("concepto_libre", "Elige un concepto del catálogo o escribe uno libre, no los dos.")
+        elif not concepto and not concepto_libre:
+            self.add_error("concepto", "Elige un concepto del catálogo o escribe uno para este lote.")
+        return cleaned
+
+
+class AporteLoteFilaForm(forms.Form):
+    """Una fila del lote: un estudiante que sí pagó (fila vacía = no pagó,
+    se ignora sin error, igual que en la alta rápida de estudiantes)."""
+
+    inscripcion_id = forms.IntegerField(widget=forms.HiddenInput)
+    monto = forms.DecimalField(max_digits=18, decimal_places=4, required=False, label="Monto")
+    referencia = forms.CharField(max_length=40, required=False, label="Referencia")
+    cedula_titular = forms.CharField(max_length=20, required=False, label="Cédula")
+    telefono_emisor = forms.CharField(max_length=11, required=False, label="Teléfono")
+    banco_origen = forms.ModelChoiceField(
+        queryset=Banco.objects.filter(activo=True).order_by("nombre"), required=False, label="Banco origen",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for nombre, field in self.fields.items():
+            if nombre == "inscripcion_id":
+                continue
+            es_select = nombre == "banco_origen"
+            field.widget.attrs.setdefault("class", "form-select form-select-sm" if es_select else "form-control form-control-sm")
+
+    def fila_vacia(self):
+        datos = getattr(self, "cleaned_data", None) or {}
+        return not datos.get("monto")
+
+
+AporteLoteFormSet = forms.formset_factory(AporteLoteFilaForm, extra=0)

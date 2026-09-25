@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block titulo %}Registrar aportes — {{ seccion }}{% endblock %}
+{% block titulo_topbar %}Registrar aportes de la sección{% endblock %}
+{% block contenido %}
+<div class="mb-4">
+  <h1 class="h3 mb-1">Registrar aportes de la sección</h1>
+  <p class="text-muted mb-0">
+    Sección: <strong>{{ seccion }}</strong>
+    {% if periodo_activo %} — Período: <strong>{{ periodo_activo }}</strong>{% endif %}
+  </p>
+</div>
+
+{% if not periodo_activo %}
+  <div class="alert alert-danger">
+    No hay un período escolar activo. Actívalo en Configuración antes de continuar.
+  </div>
+{% endif %}
+
+{% if not filas %}
+  <div class="alert alert-warning">
+    No hay estudiantes con inscripción activa en esta sección para el período actual.
+  </div>
+{% endif %}
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  {{ formset.management_form }}
+
+  <div class="card card-edumia mb-4">
+    <div class="card-body p-4">
+      <h2 class="h6 text-uppercase text-muted mb-3">Datos comunes a todos los aportes de este lote</h2>
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="form-label fw-semibold" for="{{ encabezado.concepto.id_for_label }}">{{ encabezado.concepto.label }}</label>
+          {{ encabezado.concepto }}
+          {% if encabezado.concepto.errors %}<div class="text-danger small mt-1">{% for error in encabezado.concepto.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label fw-semibold" for="{{ encabezado.concepto_libre.id_for_label }}">{{ encabezado.concepto_libre.label }}</label>
+          {{ encabezado.concepto_libre }}
+          <div class="form-text">Solo si no está en la lista (no queda guardado para la próxima vez).</div>
+          {% if encabezado.concepto_libre.errors %}<div class="text-danger small mt-1">{% for error in encabezado.concepto_libre.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="form-label fw-semibold" for="{{ encabezado.mes_cubierto.id_for_label }}">{{ encabezado.mes_cubierto.label }}</label>
+          {{ encabezado.mes_cubierto }}
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="form-label fw-semibold" for="{{ encabezado.moneda.id_for_label }}">{{ encabezado.moneda.label }}</label>
+          {{ encabezado.moneda }}
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="form-label fw-semibold" for="{{ encabezado.tasa.id_for_label }}">{{ encabezado.tasa.label }}</label>
+          {{ encabezado.tasa }}
+          {% if encabezado.tasa.errors %}<div class="text-danger small mt-1">{% for error in encabezado.tasa.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="form-label fw-semibold" for="{{ encabezado.fecha_pago.id_for_label }}">{{ encabezado.fecha_pago.label }}</label>
+          {{ encabezado.fecha_pago }}
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="form-label fw-semibold" for="{{ encabezado.forma_pago.id_for_label }}">{{ encabezado.forma_pago.label }}</label>
+          {{ encabezado.forma_pago }}
+          {% if encabezado.forma_pago.errors %}<div class="text-danger small mt-1">{% for error in encabezado.forma_pago.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="form-label fw-semibold" for="{{ encabezado.banco_destino.id_for_label }}">{{ encabezado.banco_destino.label }}</label>
+          {{ encabezado.banco_destino }}
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="form-label fw-semibold" for="{{ encabezado.entregado_por_nombre.id_for_label }}">{{ encabezado.entregado_por_nombre.label }}</label>
+          {{ encabezado.entregado_por_nombre }}
+          <div class="form-text">{{ encabezado.entregado_por_nombre.help_text }}</div>
+        </div>
+      </div>
+      {% if encabezado.non_field_errors %}
+        <div class="alert alert-danger">{% for error in encabezado.non_field_errors %}{{ error }}{% endfor %}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if filas %}
+  <p class="text-muted">Llena el monto solo de quienes pagaron; deja el resto en blanco.</p>
+  <div class="card card-edumia">
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Estudiante</th>
+            <th style="width: 14%">Monto</th>
+            <th style="width: 16%">Referencia</th>
+            <th style="width: 14%">Cédula</th>
+            <th style="width: 14%">Teléfono</th>
+            <th style="width: 16%">Banco origen</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for inscripcion, form in filas %}
+          <tr>
+            <td>{{ inscripcion.estudiante }}</td>
+            <td>{{ form.monto }}{{ form.inscripcion_id }}</td>
+            <td>{{ form.referencia }}</td>
+            <td>{{ form.cedula_titular }}</td>
+            <td>{{ form.telefono_emisor }}</td>
+            <td>{{ form.banco_origen }}</td>
+          </tr>
+          {% if form.non_field_errors %}
+            <tr>
+              <td colspan="6" class="text-danger small">
+                {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+              </td>
+            </tr>
+          {% endif %}
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-edumia-primary mt-3" {% if not periodo_activo %}disabled{% endif %}>
+    Guardar aportes
+  </button>
+  {% endif %}
+</form>
+{% endblock %}
