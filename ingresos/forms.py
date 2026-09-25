@@ -4,6 +4,8 @@ from academico.models import Inscripcion, Representante
 from cambio.models import TasaCambio
 from core.models import PeriodoEscolar
 
+from gastos.models import Fondo
+
 from .models import Aporte, Banco, ConceptoIngreso, FormaPago
 
 
@@ -20,24 +22,32 @@ class AporteForm(forms.ModelForm):
     class Meta:
         model = Aporte
         fields = [
-            "inscripcion", "concepto", "mes_cubierto",
+            "concepto", "concepto_libre", "mes_cubierto",
             "monto", "moneda", "tasa",
             "forma_pago", "fecha_pago",
             "banco_destino", "banco_origen", "referencia",
             "telefono_emisor", "cedula_titular", "nombre_titular", "nota_pago",
             "entregado_por", "entregado_por_nombre",
+            "inscripcion",
             "desviacion_confirmada",
         ]
         widgets = {
             "fecha_pago": forms.DateInput(attrs={"type": "date"}),
             "mes_cubierto": forms.DateInput(attrs={"type": "date"}),
             "nota_pago": forms.Textarea(attrs={"rows": 2}),
+            "concepto_libre": forms.TextInput(attrs={"placeholder": "Ej: Rifa del día del niño"}),
         }
         labels = {
+            "concepto_libre": "Concepto (no está en la lista)",
+            "mes_cubierto": "Período que cubre",
             "desviacion_confirmada": "Confirmo el monto aunque se desvíe del esperado",
+            "inscripcion": "Estudiante",
         }
         help_texts = {
-            "inscripcion": "Vacío para un ingreso sin estudiante (rifa, donación).",
+            "concepto": "Elige uno de la lista, o escribe uno nuevo abajo si es un ingreso no planificado.",
+            "concepto_libre": "Solo si el concepto no está en la lista de arriba (no queda guardado para "
+            "la próxima vez; el ingreso entra al Fondo General).",
+            "inscripcion": "Solo si este ingreso corresponde a un estudiante en particular.",
         }
 
     def __init__(self, *args, **kwargs):
@@ -58,6 +68,8 @@ class AporteForm(forms.ModelForm):
         self.fields["inscripcion"].required = False
 
         self.fields["concepto"].queryset = ConceptoIngreso.objects.filter(activo=True).order_by("nombre")
+        self.fields["concepto"].required = False
+        self.fields["concepto_libre"].required = False
         self.fields["forma_pago"].queryset = FormaPago.objects.filter(activo=True).order_by("nombre")
         self.fields["banco_destino"].queryset = Banco.objects.filter(activo=True).order_by("nombre")
         self.fields["banco_origen"].queryset = Banco.objects.filter(activo=True).order_by("nombre")
@@ -101,3 +113,42 @@ class AporteForm(forms.ModelForm):
         # de "fecha dentro del período" nunca ve un período asignado.
         self.instance._autocompletar_periodo_y_fondo()
         super()._post_clean()
+
+
+class ConceptoIngresoForm(forms.ModelForm):
+    class Meta:
+        model = ConceptoIngreso
+        fields = ["nombre", "periodicidad", "monto_sugerido", "moneda_sugerida", "fondo", "activo"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["fondo"].queryset = Fondo.objects.filter(activo=True).order_by("nombre")
+        self.fields["fondo"].required = False
+        self.fields["monto_sugerido"].required = False
+        self.fields["moneda_sugerida"].required = False
+        for nombre, field in self.fields.items():
+            if nombre == "activo":
+                field.widget.attrs.setdefault("class", "form-check-input")
+                continue
+            es_select = nombre in ("periodicidad", "moneda_sugerida", "fondo")
+            field.widget.attrs.setdefault("class", "form-select" if es_select else "form-control")
+
+
+class FormaPagoForm(forms.ModelForm):
+    class Meta:
+        model = FormaPago
+        fields = [
+            "nombre", "moneda_fija", "requiere_banco_destino", "requiere_banco_origen",
+            "requiere_referencia", "requiere_telefono", "requiere_cedula", "activo",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["moneda_fija"].required = False
+        for nombre, field in self.fields.items():
+            if nombre in ("requiere_banco_destino", "requiere_banco_origen", "requiere_referencia",
+                          "requiere_telefono", "requiere_cedula", "activo"):
+                field.widget.attrs.setdefault("class", "form-check-input")
+                continue
+            es_select = nombre == "moneda_fija"
+            field.widget.attrs.setdefault("class", "form-select" if es_select else "form-control")

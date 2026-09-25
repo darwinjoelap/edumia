@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block titulo %}{% if object %}Editar forma de pago{% else %}Nueva forma de pago{% endif %} — Configuración{% endblock %}
+{% block titulo_topbar %}{% if object %}Editar forma de pago{% else %}Nueva forma de pago{% endif %}{% endblock %}
+{% block contenido %}
+<h1 class="h3 mb-4">{% if object %}Editar forma de pago{% else %}Nueva forma de pago{% endif %}</h1>
+<div class="card card-edumia" style="max-width: 560px;">
+  <div class="card-body p-4">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% for field in form %}
+        {% if field.name in "requiere_banco_destino,requiere_banco_origen,requiere_referencia,requiere_telefono,requiere_cedula,activo" %}
+          <div class="form-check mb-2">
+            {{ field }}
+            <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {% if field.errors %}
+              <div class="text-danger small mt-1">{% for error in field.errors %}{{ error }}{% endfor %}</div>
+            {% endif %}
+          </div>
+        {% else %}
+          <div class="mb-3">
+            <label class="form-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+            {% if field.errors %}
+              <div class="text-danger small mt-1">{% for error in field.errors %}{{ error }}{% endfor %}</div>
+            {% endif %}
+          </div>
+        {% endif %}
+      {% endfor %}
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">{% for error in form.non_field_errors %}{{ error }}{% endfor %}</div>
+      {% endif %}
+      <button type="submit" class="btn btn-edumia-primary">Guardar</button>
+      <a href="{% url 'ingresos:formapago_lista' %}" class="btn btn-outline-secondary">Cancelar</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

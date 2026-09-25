@@ -45,5 +45,32 @@
       </div>
     </a>
   </div>
+  <div class="col-md-4">
+    <a href="{% url 'ingresos:concepto_lista' %}" class="quick-action h-100">
+      <span class="quick-action-icon"><i class="bi bi-tag-fill"></i></span>
+      <div>
+        <div class="fw-semibold">Conceptos de ingreso</div>
+        <div class="text-muted small">Qué se puede registrar como ingreso</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-4">
+    <a href="{% url 'ingresos:formapago_lista' %}" class="quick-action h-100">
+      <span class="quick-action-icon"><i class="bi bi-credit-card-fill"></i></span>
+      <div>
+        <div class="fw-semibold">Formas de pago</div>
+        <div class="text-muted small">Efectivo, pago móvil, transferencia, Zelle…</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-4">
+    <a href="{% url 'cambio:tasa_lista' %}" class="quick-action h-100">
+      <span class="quick-action-icon"><i class="bi bi-currency-exchange"></i></span>
+      <div>
+        <div class="fw-semibold">Tasa de cambio</div>
+        <div class="text-muted small">Cargar la tasa del día y ver el historial</div>
+      </div>
+    </a>
+  </div>
 </div>
 {% endblock %}

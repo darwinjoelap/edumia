@@ -8,11 +8,12 @@ Formato: una entrada por decisión. Estado: **Cerrada** o **Pendiente**.
 - Sin multi-tenant. `Institucion` es un singleton para el encabezado de recibos.
 
 ## D-02 — Bimoneda real con tasa congelada
-- Estado: Cerrada
+- Estado: Cerrada, revisada 2026-09-25
 - Cada transacción guarda `monto`, `moneda`, `tasa` (FK), `tasa_aplicada`, `monto_ves`, `monto_usd`.
 - Montos y tasas: `DecimalField(max_digits=18, decimal_places=4)`. Nunca `FloatField`.
 - Toda conversión pasa por `cambio/services.py` con `ROUND_HALF_UP`.
 - Sin tasa para la fecha: se usa la última anterior y se avisa en pantalla; no se bloquea el registro.
+- **Revisión (2026-09-25, pedido de Darwin):** `TasaCambio.valor` ya no es inmutable una vez que tiene aportes. Se puede editar para corregir una tasa mal cargada; al guardar, `TasaCambio.save()` recalcula en cascada los aportes que la usan y siguen en «registrado» u «observado». Los que ya están «verificado» o «anulado» no se recalculan (D-09 sigue protegiéndolos): si uno de esos quedó mal por una tasa errada, se anula y se registra de nuevo.
 
 ## D-03 — Stack
 - Estado: Cerrada

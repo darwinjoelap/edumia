@@ -1,14 +1,18 @@
 from django.conf import settings
-from django.core.exceptions import ValidationError
 from django.db import models
 from simple_history.models import HistoricalRecords
 
 
 class TasaCambio(models.Model):
-    """Tasa de cambio Bs./USD de un día y una fuente. No se edita `valor` una
-    vez que alguna transacción (Aporte desde la Fase 3, Gasto desde la
-    Fase 5) la referencia; se corrige cargando una fila nueva, así el pasado
-    no cambia (las transacciones guardan su propio `tasa_aplicada`)."""
+    """Tasa de cambio Bs./USD de un día y una fuente.
+
+    D-02 revisado (2026-09-25): `valor` SÍ se puede editar aunque ya tenga
+    transacciones (Aporte, y a futuro Gasto). Al guardar un cambio de valor,
+    `save()` recalcula en cascada los aportes que la usan y todavía están en
+    «registrado» u «observado» (para que la corrección de una tasa mal
+    cargada se refleje en lo que ya se registró ese día). Los que ya están
+    «verificado» o «anulado» NO se tocan: siguen protegidos por D-09 (lo
+    verificado no cambia; si estaba mal, se anula y se registra de nuevo)."""
 
     class Fuente(models.TextChoices):
         BCV = "bcv", "BCV"
@@ -55,13 +59,24 @@ class TasaCambio(models.Model):
             return True
         return False
 
-    def clean(self):
-        if self.pk and self.valor != self._valor_original and self.tiene_transacciones():
-            raise ValidationError(
-                "No se puede editar el valor de una tasa que ya tiene aportes u otras "
-                "transacciones registradas con ella: el pasado no cambia (D-02/D-09). "
-                "Carga una tasa nueva en su lugar."
-            )
+    def _transacciones_recalculables(self):
+        """Transacciones que SÍ se recalculan si `valor` cambia: las que no
+        están congeladas todavía (D-09 protege verificado/anulado)."""
+        from ingresos.models import Aporte
+
+        qs = [self.aportes.filter(estado__in=[Aporte.Estado.REGISTRADO, Aporte.Estado.OBSERVADO])]
+        if hasattr(self, "gastos"):
+            qs.append(self.gastos.all())  # cuando exista Gasto (Fase 5), se ajusta el filtro de estado
+        return qs
+
+    def save(self, *args, **kwargs):
+        valor_cambio = self.pk and self.valor != self._valor_original
+        super().save(*args, **kwargs)
+        if valor_cambio:
+            for conjunto in self._transacciones_recalculables():
+                for transaccion in conjunto:
+                    transaccion.save()  # dispara calcular_montos() con el nuevo valor
+        self._valor_original = self.valor
 
 
 class MontoBimonedaMixin(models.Model):

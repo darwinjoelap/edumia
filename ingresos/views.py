@@ -1,12 +1,14 @@
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse_lazy
 from django.utils import timezone
+from django.views.generic import CreateView, ListView, UpdateView
 
-from core.mixins import requiere_rol
+from core.mixins import RolRequeridoMixin, requiere_rol
 
-from .forms import AporteForm
-from .models import Aporte
+from .forms import AporteForm, ConceptoIngresoForm, FormaPagoForm
+from .models import Aporte, ConceptoIngreso, FormaPago
 
 # Quiénes pueden registrar un aporte individual desde esta pantalla (además
 # del superusuario, que siempre pasa). El registro en lote por sección, para
@@ -15,6 +17,10 @@ ROLES_REGISTRO = ("administrador", "responsable_fondo")
 
 # Quién verifica/observa/anula (docs/MODELOS_cambio_ingresos.md: "Admin").
 ROLES_VERIFICACION = ("administrador",)
+
+# Quién administra los catálogos de Ingresos desde Configuración (debe
+# coincidir con core.views.ROLES_CONFIGURACION).
+ROLES_CONFIGURACION = ("administrador",)
 
 
 @requiere_rol(*ROLES_REGISTRO)
@@ -103,3 +109,73 @@ def aporte_anular(request, pk):
         "aporte": aporte, "accion": "anular", "titulo": "Anular aporte",
         "etiqueta_motivo": "Motivo de anulación", "boton": "Anular aporte",
     })
+
+
+# --- Configuración: catálogos de Ingresos (rol administrador) --------------
+
+class ConceptoIngresoListView(RolRequeridoMixin, ListView):
+    roles_permitidos = ROLES_CONFIGURACION
+    model = ConceptoIngreso
+    template_name = "ingresos/concepto_lista.html"
+    context_object_name = "conceptos"
+    queryset = ConceptoIngreso.objects.select_related("fondo").order_by("nombre")
+
+
+class ConceptoIngresoCreateView(RolRequeridoMixin, CreateView):
+    roles_permitidos = ROLES_CONFIGURACION
+    model = ConceptoIngreso
+    form_class = ConceptoIngresoForm
+    template_name = "ingresos/concepto_form.html"
+    success_url = reverse_lazy("ingresos:concepto_lista")
+
+    def form_valid(self, form):
+        respuesta = super().form_valid(form)
+        messages.success(self.request, f"Concepto de ingreso «{self.object}» creado.")
+        return respuesta
+
+
+class ConceptoIngresoUpdateView(RolRequeridoMixin, UpdateView):
+    roles_permitidos = ROLES_CONFIGURACION
+    model = ConceptoIngreso
+    form_class = ConceptoIngresoForm
+    template_name = "ingresos/concepto_form.html"
+    success_url = reverse_lazy("ingresos:concepto_lista")
+
+    def form_valid(self, form):
+        respuesta = super().form_valid(form)
+        messages.success(self.request, f"Concepto de ingreso «{self.object}» actualizado.")
+        return respuesta
+
+
+class FormaPagoListView(RolRequeridoMixin, ListView):
+    roles_permitidos = ROLES_CONFIGURACION
+    model = FormaPago
+    template_name = "ingresos/formapago_lista.html"
+    context_object_name = "formas_pago"
+    queryset = FormaPago.objects.order_by("nombre")
+
+
+class FormaPagoCreateView(RolRequeridoMixin, CreateView):
+    roles_permitidos = ROLES_CONFIGURACION
+    model = FormaPago
+    form_class = FormaPagoForm
+    template_name = "ingresos/formapago_form.html"
+    success_url = reverse_lazy("ingresos:formapago_lista")
+
+    def form_valid(self, form):
+        respuesta = super().form_valid(form)
+        messages.success(self.request, f"Forma de pago «{self.object}» creada.")
+        return respuesta
+
+
+class FormaPagoUpdateView(RolRequeridoMixin, UpdateView):
+    roles_permitidos = ROLES_CONFIGURACION
+    model = FormaPago
+    form_class = FormaPagoForm
+    template_name = "ingresos/formapago_form.html"
+    success_url = reverse_lazy("ingresos:formapago_lista")
+
+    def form_valid(self, form):
+        respuesta = super().form_valid(form)
+        messages.success(self.request, f"Forma de pago «{self.object}» actualizada.")
+        return respuesta

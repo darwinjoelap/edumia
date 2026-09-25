@@ -43,7 +43,7 @@ class AporteAdmin(admin.ModelAdmin):
     list_filter = ["estado", "periodo", "concepto", "forma_pago"]
     search_fields = [
         "cedula_titular", "telefono_emisor", "referencia",
-        "entregado_por_nombre", "nombre_titular",
+        "entregado_por_nombre", "nombre_titular", "concepto_libre",
     ]
     date_hierarchy = "fecha_pago"
     readonly_fields = [

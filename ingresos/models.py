@@ -161,7 +161,15 @@ class Aporte(MontoBimonedaMixin, models.Model):
         Inscripcion, null=True, blank=True, on_delete=models.PROTECT, related_name="aportes",
         help_text="Vacío para ingresos sin estudiante (rifas, donaciones — D-19).",
     )
-    concepto = models.ForeignKey(ConceptoIngreso, on_delete=models.PROTECT, related_name="aportes")
+    concepto = models.ForeignKey(
+        ConceptoIngreso, null=True, blank=True, on_delete=models.PROTECT, related_name="aportes",
+        help_text="Vacío si es un ingreso no planificado (usa «concepto libre» en su lugar).",
+    )
+    concepto_libre = models.CharField(
+        max_length=150, blank=True,
+        help_text="Nombre escrito en el momento, para un ingreso no planificado que no está en el catálogo "
+        "(no queda guardado como concepto reutilizable; el ingreso entra siempre al Fondo General).",
+    )
     periodo = models.ForeignKey(
         "core.PeriodoEscolar", on_delete=models.PROTECT, related_name="aportes",
         help_text="Denormalizado: de inscripcion.periodo si hay inscripción, o el período activo al registrar.",
@@ -173,7 +181,7 @@ class Aporte(MontoBimonedaMixin, models.Model):
 
     # --- Cobertura -----------------------------------------------------------
     mes_cubierto = models.DateField(
-        null=True, blank=True,
+        null=True, blank=True, verbose_name="período que cubre",
         help_text="Día 1 del mes que cubre este aporte. Obligatorio si el concepto es mensual.",
     )
 
@@ -256,12 +264,20 @@ class Aporte(MontoBimonedaMixin, models.Model):
 
     def __str__(self):
         quien = self.entregado_por or self.entregado_por_nombre or "—"
-        return f"{self.concepto} · {quien} · {self.monto} {self.moneda} ({self.get_estado_display()})"
+        concepto = self.concepto or self.concepto_libre or "—"
+        return f"{concepto} · {quien} · {self.monto} {self.moneda} ({self.get_estado_display()})"
 
     # --- Validación (docs/MODELOS_cambio_ingresos.md, sección Aporte) --------
 
     def clean(self):
         errores = {}
+
+        if self.concepto_id and self.concepto_libre:
+            errores["concepto_libre"] = (
+                "No se puede elegir un concepto del catálogo y además escribir uno libre: usa solo uno."
+            )
+        elif not self.concepto_id and not self.concepto_libre:
+            errores["concepto"] = "Elige un concepto del catálogo o escribe uno para este ingreso no planificado."
 
         if self.forma_pago_id:
             fp = self.forma_pago

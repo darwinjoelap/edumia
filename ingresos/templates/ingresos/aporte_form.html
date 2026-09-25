@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block titulo %}Registrar aporte — Edumia{% endblock %}
-{% block titulo_topbar %}Registrar aporte{% endblock %}
+{% block titulo %}Registrar ingreso — Edumia{% endblock %}
+{% block titulo_topbar %}Registrar ingreso{% endblock %}
 {% block contenido %}
 
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
   <div>
-    <h1 class="h3 mb-1">Registrar aporte</h1>
+    <h1 class="h3 mb-1">Registrar ingreso</h1>
     <p class="text-muted mb-0">
       Queda en estado «registrado», pendiente de que un administrador lo verifique desde la
       <a href="{% url 'ingresos:aporte_bandeja' %}">bandeja de verificación</a>.
@@ -24,18 +24,31 @@
     <form method="post" novalidate>
       {% csrf_token %}
 
-      <h2 class="h6 text-uppercase text-muted mb-3">Concepto y estudiante</h2>
+      <h2 class="h6 text-uppercase text-muted mb-3">Concepto</h2>
+      <div class="mb-3">
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="tipo_concepto" id="tipo_concepto_catalogo"
+                 value="catalogo" {% if not form.concepto_libre.value %}checked{% endif %}>
+          <label class="form-check-label" for="tipo_concepto_catalogo">De la lista</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="tipo_concepto" id="tipo_concepto_libre"
+                 value="libre" {% if form.concepto_libre.value %}checked{% endif %}>
+          <label class="form-check-label" for="tipo_concepto_libre">Escribir uno nuevo (no planificado)</label>
+        </div>
+      </div>
       <div class="row">
-        <div class="col-md-6 mb-3">
+        <div class="col-md-6 mb-3" id="bloque-concepto-catalogo">
           <label class="form-label fw-semibold" for="{{ form.concepto.id_for_label }}">{{ form.concepto.label }}</label>
           {{ form.concepto }}
+          <div class="form-text">{{ form.concepto.help_text }}</div>
           {% if form.concepto.errors %}<div class="text-danger small mt-1">{% for error in form.concepto.errors %}{{ error }}{% endfor %}</div>{% endif %}
         </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label fw-semibold" for="{{ form.inscripcion.id_for_label }}">{{ form.inscripcion.label }}</label>
-          {{ form.inscripcion }}
-          <div class="form-text">{{ form.inscripcion.help_text }}</div>
-          {% if form.inscripcion.errors %}<div class="text-danger small mt-1">{% for error in form.inscripcion.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        <div class="col-md-6 mb-3" id="bloque-concepto-libre">
+          <label class="form-label fw-semibold" for="{{ form.concepto_libre.id_for_label }}">{{ form.concepto_libre.label }}</label>
+          {{ form.concepto_libre }}
+          <div class="form-text">{{ form.concepto_libre.help_text }}</div>
+          {% if form.concepto_libre.errors %}<div class="text-danger small mt-1">{% for error in form.concepto_libre.errors %}{{ error }}{% endfor %}</div>{% endif %}
         </div>
         <div class="col-md-6 mb-3">
           <label class="form-label fw-semibold" for="{{ form.mes_cubierto.id_for_label }}">{{ form.mes_cubierto.label }}</label>
@@ -133,9 +146,48 @@
         </div>
       </div>
 
-      <button type="submit" class="btn btn-edumia-primary">Registrar aporte</button>
+      <div class="mb-3">
+        <button type="button" class="btn btn-link p-0" data-bs-toggle="collapse"
+                data-bs-target="#bloque-estudiante" aria-expanded="{% if form.inscripcion.value %}true{% else %}false{% endif %}">
+          <i class="bi bi-link-45deg"></i> Vincular a un estudiante (opcional)
+        </button>
+        <div class="collapse{% if form.inscripcion.value %} show{% endif %}" id="bloque-estudiante">
+          <div class="border rounded p-3 mt-2" style="background: var(--bs-tertiary-bg, #f8f9fa);">
+            <label class="form-label fw-semibold" for="{{ form.inscripcion.id_for_label }}">{{ form.inscripcion.label }}</label>
+            {{ form.inscripcion }}
+            <div class="form-text">{{ form.inscripcion.help_text }}</div>
+            {% if form.inscripcion.errors %}<div class="text-danger small mt-1">{% for error in form.inscripcion.errors %}{{ error }}{% endfor %}</div>{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-edumia-primary">Registrar ingreso</button>
       <a href="{% url 'inicio' %}" class="btn btn-outline-secondary">Cancelar</a>
     </form>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  (function () {
+    var bloqueCatalogo = document.getElementById("bloque-concepto-catalogo");
+    var bloqueLibre = document.getElementById("bloque-concepto-libre");
+    var selectConcepto = document.getElementById("{{ form.concepto.id_for_label }}");
+    var inputLibre = document.getElementById("{{ form.concepto_libre.id_for_label }}");
+
+    function actualizar() {
+      var esLibre = document.getElementById("tipo_concepto_libre").checked;
+      bloqueCatalogo.style.display = esLibre ? "none" : "";
+      bloqueLibre.style.display = esLibre ? "" : "none";
+      if (esLibre && selectConcepto) selectConcepto.value = "";
+      if (!esLibre && inputLibre) inputLibre.value = "";
+    }
+
+    document.querySelectorAll('input[name="tipo_concepto"]').forEach(function (r) {
+      r.addEventListener("change", actualizar);
+    });
+    actualizar();
+  })();
+</script>
 {% endblock %}
